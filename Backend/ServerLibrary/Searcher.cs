@@ -1,16 +1,7 @@
-﻿using System;
+﻿using CookieCrumbs.ContentLibrary;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
-using CookieCrumbs.ContentLibrary;
 namespace Backend.ServerLibrary
 {
     public class Searcher
@@ -22,7 +13,7 @@ namespace Backend.ServerLibrary
         public static Regex TitleGet = new Regex(
             //@"(?:\[[^\]]*\]\s*)*(?<Title>[A-Z](?:[a-z]*|\d+)(?:[.\s&-][A-Z](?:[a-z]*|\d+))*)(?=.*(?:S\d{2}|(?:\(\d{4}\)|\d{4})|Season\s?\d{1,2}|1080p|720p|x265|HEVC|x264|AV1))",
             @"(?:\[[^\]]*\]\s*)*(?<Title>[A-Z](?:[a-z]+|)(?:[.\s&-][A-Z][a-z]*)*)(?=.*(?:S\d{2}|(?:\(\d{4}\)|\d{4})|Season\s?\d{1,2}|1080p|720p|x265|HEVC|x264|AV1))",
-            //@"(?:\[[^\]]*\]\s*)*(?<Title>[A-Z][a-z]+(?:[.\s&][A-Z][a-z]+)*)(?=.*(?:S\d{2}|(?:\(\d{4}\)|\d{4})|Season\s?\d{1,2}|1080p|720p|x265|HEVC|x264|AV1))",
+        //@"(?:\[[^\]]*\]\s*)*(?<Title>[A-Z][a-z]+(?:[.\s&][A-Z][a-z]+)*)(?=.*(?:S\d{2}|(?:\(\d{4}\)|\d{4})|Season\s?\d{1,2}|1080p|720p|x265|HEVC|x264|AV1))",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static Regex SeasonEpisode = new Regex(
@@ -48,7 +39,7 @@ namespace Backend.ServerLibrary
             // Title / Season X / [files]
             // In this case we want the Title, Season X, and [files]
             directory = Library.CleanTitle(directory);
-            if(directory.StartsWith("season"))
+            if (directory.StartsWith("season"))
             {
                 //strip "season" and see if we can read a season
                 int.TryParse(directory.Substring(6).Trim(), out season);
@@ -59,8 +50,8 @@ namespace Backend.ServerLibrary
                     directory = Library.CleanTitle(directory);
                 }
             }
-            
-            
+
+
             string filename = Path.GetFileName(Path.GetFileNameWithoutExtension(file));
             // Skip $ prefixed files since they almost always seem to be recyclers
             if (filename.StartsWith("$")) return null;
@@ -105,7 +96,7 @@ namespace Backend.ServerLibrary
                     title = titleMatch.Groups["Title"].Value;
                 }
             }
-            
+
             // If we found a title, then we should try to read an episode thingy
             if (title != null)
             {
@@ -129,7 +120,7 @@ namespace Backend.ServerLibrary
                 }
 
 
-                if(title.EndsWith(" s"))
+                if (title.EndsWith(" s"))
                 {
                     title = title.Remove(title.Length - 2);
                     if (title.Length <= 0) return null;
@@ -249,7 +240,7 @@ namespace Backend.ServerLibrary
         /// <summary>
         /// Enumeration of series that have been discovered by the Searcher
         /// </summary>
-        Library library = new();
+        private Library library = new();
 
         public string Root = "";
 
@@ -274,7 +265,7 @@ namespace Backend.ServerLibrary
             // BFS allows us to break this up with threads effectively
             BlockingCollection<string> Directories = new();
             Directories.Add(Root);
-            
+
             // Use a separate collection to absorb found series
             ConcurrentDictionary<string, Title> grabbed = new();
 
@@ -284,28 +275,28 @@ namespace Backend.ServerLibrary
             //{
             //    tasks.Add(Task.Run(() =>
             //    {
-                    // Essentially, let's just enumerate the hell out of everything
-                    // We should delay a little bit, just to make sure
-                    // that we don't run out of directories
-                    while (Directories.TryTake(out var d, 100))
-                    {
-                        try
-                        {
-                            // Let's get every directory in this directory
-                            // So that the other threads can work
-                            foreach (var dd in Directory.EnumerateDirectories(d)) Directories.Add(dd);
-                        }
-                        catch { }
+            // Essentially, let's just enumerate the hell out of everything
+            // We should delay a little bit, just to make sure
+            // that we don't run out of directories
+            while (Directories.TryTake(out var d, 100))
+            {
+                try
+                {
+                    // Let's get every directory in this directory
+                    // So that the other threads can work
+                    foreach (var dd in Directory.EnumerateDirectories(d)) Directories.Add(dd);
+                }
+                catch { }
 
-                        // See if this folder contains videos
-                        try
-                        {
-                            // Now process all of the files in this directory, non-recursively
-                            var videoFiles = Directory.EnumerateFiles(d).Where(x => VideoExtensions.Contains(Path.GetExtension(x).ToLower()));
-                            foreach (string file in videoFiles) ProcessFile(file, grabbed);
-                        }
-                        catch { }
-                    }
+                // See if this folder contains videos
+                try
+                {
+                    // Now process all of the files in this directory, non-recursively
+                    var videoFiles = Directory.EnumerateFiles(d).Where(x => VideoExtensions.Contains(Path.GetExtension(x).ToLower()));
+                    foreach (string file in videoFiles) ProcessFile(file, grabbed);
+                }
+                catch { }
+            }
             //    }
             //    ));
             //}
@@ -423,9 +414,9 @@ namespace Backend.ServerLibrary
             }
 
 
-            foreach(var show in grabbed)
+            foreach (var show in grabbed)
             {
-                
+
                 if (show.Value.PredictMovie)
                 {
                     Console.WriteLine($"Movie: {show.Value.Name}\n{show.Value.EpisodeList.First().Value.Path}");

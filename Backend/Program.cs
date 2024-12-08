@@ -1,12 +1,6 @@
-﻿using CookieCrumbs;
-using CookieCrumbs.ContentLibrary;
+﻿using CookieCrumbs.ContentLibrary;
 using CookieCrumbs.Serializing;
-using CookieCrumbs.TCPMediation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using CookieCrumbs.TCP;
 
 namespace Backend.ServerLibrary
 {
@@ -18,8 +12,11 @@ namespace Backend.ServerLibrary
         public static void Main(string[] args)
         {
 
+
+
+
             ConnectionProvider cp = new ConnectionProvider(6556);
-            while(true)
+            while (true)
             {
                 Console.ReadLine();
             }
@@ -43,7 +40,7 @@ namespace Backend.ServerLibrary
 
 
 
-            foreach(var title in lib.FoundSeries)
+            foreach (var title in lib.FoundSeries)
             {
                 var s = localSerializer.GetCompounded(title.Value);
                 var d = localSerializer.CompoundToString(s);

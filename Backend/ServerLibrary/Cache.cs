@@ -1,10 +1,4 @@
 ﻿using CookieCrumbs.ContentLibrary;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Backend.ServerLibrary
 {
@@ -16,7 +10,7 @@ namespace Backend.ServerLibrary
         {
             this.Root = root;
         }
-        
+
         // Cache hierarchy
         // Root
         // cache: Root / _media_library_cache
@@ -34,7 +28,7 @@ namespace Backend.ServerLibrary
 
         public Library? FromCache()
         {
-           
+
 
             return null;
 

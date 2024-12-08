@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 
 namespace Backend
 {
@@ -24,18 +19,18 @@ namespace Backend
             int iterations = 1024 * 4;
 
             int[] positions = new int[iterations];
-            
-            for(int i = 0; i < iterations; i++)
+
+            for (int i = 0; i < iterations; i++)
             {
                 positions[i] = i;
             }
-            Random.Shared.Shuffle( positions );
+            Random.Shared.Shuffle(positions);
 
 
             using var f = File.OpenWrite($"{root}/bench.file");
             int step = 4096 * 2;
 
-            for(int i = 0; i < iterations; i++)
+            for (int i = 0; i < iterations; i++)
             {
                 Random r = new Random(i);
                 byte[] b = new byte[step];
@@ -47,7 +42,7 @@ namespace Backend
 
 
             int counter = 0;
-            Parallel.For(0, iterations, new ParallelOptions() { MaxDegreeOfParallelism = threads },(i) =>
+            Parallel.For(0, iterations, new ParallelOptions() { MaxDegreeOfParallelism = threads }, (i) =>
             {
                 // get the random position for our thread
                 int ii = positions[i];
@@ -64,7 +59,7 @@ namespace Backend
                 byte[] check = new byte[step];
                 r.NextBytes(check);
 
-                for(int j = 0; j < check.Length; j++)
+                for (int j = 0; j < check.Length; j++)
                 {
                     if (check[j] != buffer[j])
                     {
