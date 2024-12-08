@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace CookieCrumbs.Utils
+namespace Cookie.Utils
 {
     internal class ResourceTool
     {

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace CookieCrumbs.ContentLibrary
+namespace Cookie.ContentLibrary
 {
     public class Library
     {

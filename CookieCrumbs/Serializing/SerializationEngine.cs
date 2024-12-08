@@ -3,7 +3,7 @@ using System.Data;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace CookieCrumbs.Serializing
+namespace Cookie.Serializing
 {
     public class SerializationEngine
     {
@@ -21,7 +21,7 @@ namespace CookieCrumbs.Serializing
         /// Initializes a serializer in the given mode
         /// </summary>
         /// <param name="mode"></param>
-        public SerializationEngine(HostMode mode = HostMode.LOCAL)
+        public SerializationEngine(HostMode mode = HostMode.BACKEND)
         {
             this.Mode = mode;
         }

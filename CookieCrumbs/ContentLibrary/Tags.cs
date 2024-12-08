@@ -1,4 +1,4 @@
-﻿namespace CookieCrumbs.ContentLibrary
+﻿namespace Cookie.ContentLibrary
 {
     public class Tags
     {

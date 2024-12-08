@@ -1,6 +1,6 @@
-﻿using CookieCrumbs.Serializing;
+﻿using Cookie.Serializing;
 
-namespace CookieCrumbs.ContentLibrary
+namespace Cookie.ContentLibrary
 {
     public class Title : ICanJson
     {
@@ -17,6 +17,10 @@ namespace CookieCrumbs.ContentLibrary
         /// </summary>
         public Dictionary<string, Season> Eps { get; set; } = [];
 
+        /// <summary>
+        /// A unique code that identifies this series
+        /// </summary>
+        public int Code = 0;
 
         /// <summary>
         /// Gets or sets the id for this title. This should be unique.

@@ -1,10 +1,10 @@
-﻿namespace CookieCrumbs.TCP
+﻿namespace Cookie.TCP
 {
     /// <summary>
     /// Provides a summary of information parsed from an incoming network stream. Allows pairing with
     /// <see cref="ResponseSender"/> to simplify HTTP over a raw TCP connection.
     /// </summary>
-    internal class RequestReader
+    public class RequestReader
     {
         public HttpMethod Method { get; set; } = HttpMethod.Get;
 
@@ -44,14 +44,14 @@
         public RequestReader(Stream stream)
         {
             this.UnderlyingStream = stream;
-            using var inputStream = new StreamReader(stream, leaveOpen: true);
-            Read(inputStream);
             // This leaves the stream at the end of the header body
             // So normal reading can resume post-haste
         }
 
-        public async void Read(StreamReader inputStream)
+        public async Task Read()
         {
+            using var inputStream = new StreamReader(UnderlyingStream, leaveOpen: true);
+
             var firstLine = await inputStream.ReadLineAsync();
             if (firstLine != null)
             {
@@ -96,6 +96,7 @@
                     string key = read!.Remove(pos);
                     string body = read.Substring(pos + 1);
                     headers.Add(key, body.Trim());
+                    Console.WriteLine(key + ": " + body);
                 }
 
             }

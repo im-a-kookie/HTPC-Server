@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend", "Backend\Backend.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CookieCrumbs", "CookieCrumbs\CookieCrumbs.csproj", "{FC11CFF2-DE2A-4B6F-91EF-0CBB7954E5F3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CookieConnections", "CookieConnections\CookieConnections.csproj", "{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{FC11CFF2-DE2A-4B6F-91EF-0CBB7954E5F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FC11CFF2-DE2A-4B6F-91EF-0CBB7954E5F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FC11CFF2-DE2A-4B6F-91EF-0CBB7954E5F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

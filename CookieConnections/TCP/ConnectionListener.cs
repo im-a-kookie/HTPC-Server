@@ -1,8 +1,9 @@
-﻿using System.Net.Security;
+﻿using System.Linq.Expressions;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 
-namespace CookieCrumbs.TCP
+namespace Cookie.TCP
 {
     internal class ConnectionListener
     {
@@ -10,7 +11,7 @@ namespace CookieCrumbs.TCP
         /// <summary>
         /// A counter estimating the number of live requests being processed
         /// </summary>
-        public int EstimatedLiveRequests = 0;
+        public bool Working = false;
         /// <summary>
         /// A counter indicating the number of requests (x1e3). 
         /// <para>
@@ -18,6 +19,11 @@ namespace CookieCrumbs.TCP
         /// </para>
         /// </summary>
         public int RequestRateCounter = 0;
+
+        /// <summary>
+        /// A counter for the number of in-flight calls
+        /// </summary>
+        public int InFlightCalls = 0;
 
         /// <summary>
         /// A boolean flag indicating whether this listener is still alive
@@ -64,61 +70,68 @@ namespace CookieCrumbs.TCP
         /// </summary>
         public async void Listen()
         {
+            Interlocked.Increment(ref connection.IdleWorkers);
             List<Task> active = new();
-            while (!Token.IsCancellationRequested)
+            try
             {
-                //Add an inherent rate limiter under higher load
-                active.RemoveAll(x => x.IsCompleted);
-                int min = 5;
-                if (active.Count >= min)
+                while (!Token.IsCancellationRequested)
                 {
-                    // Increment the stressed-worker counter because yes
-                    try
+                    // Allow pausing from the underlying connection
+                    connection.listenerSignal.WaitOne();
+                    if (Token.IsCancellationRequested) break;
+
+                    if (InFlightCalls > 3)
                     {
-                        Interlocked.Increment(ref connection.StressedWorkers);
-                        connection.Notify();
-                        // Let's calculate a simple scaling formula for load balancing
-                        int n = int.Max(0, active.Count - min);
-                        int m = int.Max(0, active.Count - (min * 2));
-                        int len = n * n + m * m * m;
-                        len *= 10;
-                        len = int.Min(1000, len);
-                        // As this operation may become very long
-                        // Allow it to be cancelled
-                        await Task.WhenAny(Task.Delay(len), cancellationTask);
+                        await Task.Delay(InFlightCalls * InFlightCalls * 50);
                     }
-                    catch { }
-                    finally
+
+                    // Await a response
+                    var client = connection.listener.AcceptTcpClientAsync(Token);
+                    await client;
+                    Interlocked.CompareExchange(ref Working, false, true);
+                    // We are now counted as a live thread
+
+                    Interlocked.Increment(ref InFlightCalls);
+                    Interlocked.Decrement(ref connection.IdleWorkers);
+
+                    connection.Notify();
+
+                    // Run the task if we completed
+                    if (client.IsCompletedSuccessfully)
                     {
-                        // We're done waiting, so we can exit out of here
-                        Interlocked.Decrement(ref connection.StressedWorkers);
+                        var tcpClient = client.Result;
+                        active.Add(Task.Run(async () =>
+                        {
+                            //using (tcpClient) // Ensures cleanup of the TcpClient
+                            using (var stream = await GetClientStream(tcpClient))
+                                await Process(stream);
+
+                            tcpClient.Close();
+                            Interlocked.Decrement(ref InFlightCalls);
+                        }));
+
+                        // Whatever
+                        Interlocked.Add(ref RequestRateCounter, 1000);
                     }
+                    else
+                    {
+                        Interlocked.Decrement(ref InFlightCalls);
+                        if (client.Result != null) client.Result.Close();
+                    }
+
+
+                    // This thread is no longer live
+                    Interlocked.CompareExchange(ref Working, true, false);
+                    Interlocked.Increment(ref connection.IdleWorkers);
                 }
-
-                // Allow pausing from the underlying connection
-                connection.listenerSignal.WaitOne();
-                if (Token.IsCancellationRequested) break;
-
-                // Await a response
-                var client = connection.listener.AcceptTcpClientAsync(Token);
-                await client;
-
-                // We are now counted as a live thread
-                Interlocked.Increment(ref EstimatedLiveRequests);
-
-                // Run the task if we completed
-                if (client.IsCompletedSuccessfully)
-                {
-                    active.Add(Task.Run(() => Process(client.Result)));
-                    // Counter is stuck as an int, but this is no biggie
-                    // We can just scale it up here, and back down later
-                    Interlocked.Add(ref RequestRateCounter, 1000);
-                }
-                // This thread is no longer live
-                else Interlocked.Decrement(ref EstimatedLiveRequests);
             }
-            // now wait for everything to exit
-            await Task.WhenAll(active);
+            catch { }
+            finally
+            {
+                // now wait for everything to exit
+                await Task.WhenAll(active);
+                Interlocked.Decrement(ref connection.IdleWorkers);
+            }
         }
 
         /// <summary>
@@ -147,7 +160,7 @@ namespace CookieCrumbs.TCP
             }
             else
             {
-                return client!.GetStream();
+                return client.GetStream();
             }
         }
 
@@ -155,39 +168,27 @@ namespace CookieCrumbs.TCP
         /// Processes the input client request.
         /// </summary>
         /// <param name="client"></param>
-        public async void Process(TcpClient client)
+        public async Task Process(Stream stream)
         {
+
             try
             {
                 // get the underlying stream
-                using Stream? underlyingStream = await GetClientStream(client!);
-
                 // Establish a request and response
-                var request = new RequestReader(underlyingStream);
+                var request = new RequestReader(stream);
+                await request.Read();
+
                 var response = new ResponseSender(request);
+                connection.CallOnRequest(request, response);
 
-                // Now we need to handle the request parameters
-                if (request.Target.StartsWith("stream:"))
-                {
-                    //read the target and stream it
-                }
-                else
-                {
-                    //see if it corresponds to a file in the delivery directory
-
-                }
-
-                underlyingStream.Close();
-                client.Close();
             }
-            catch
+            catch(Exception e)
             {
-                // Log the error?
+                Logger.Default.Error($"TCP Client Listener threw: {e}");
             }
             finally
             {
-                client?.Close();
-                Interlocked.Decrement(ref EstimatedLiveRequests);
+                stream?.Close();
             }
         }
 

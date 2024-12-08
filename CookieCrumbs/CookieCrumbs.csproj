@@ -6,16 +6,24 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net7.0-wasm'">
+		<DefineConstants>WEBASSEMBLY</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-wasm'">
+		<DefineConstants>WEBASSEMBLY</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net9.0-wasm'">
+		<DefineConstants>WEBASSEMBLY</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
     <None Remove="Utils\mimes.txt" />
-    <None Remove="TCP\Stubs\NotFound.html" />
-    <None Remove="TCP\Stubs\NotFound.json" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Utils\mimes.txt" />
-    <EmbeddedResource Include="TCP\Stubs\NotFound.html" />
-    <EmbeddedResource Include="TCP\Stubs\NotFound.json" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,7 @@
-﻿using CookieCrumbs.ContentLibrary;
-using CookieCrumbs.Serializing;
-using CookieCrumbs.TCP;
+﻿using Cookie;
+using Cookie.ContentLibrary;
+using Cookie.Serializing;
+using Cookie.TCP;
 
 namespace Backend.ServerLibrary
 {
@@ -13,11 +14,18 @@ namespace Backend.ServerLibrary
         {
 
 
+            ContentInterface back = new ContentInterface(16643, null, HostMode.BACKEND);
+            ContentInterface front = new ContentInterface(16643, null, HostMode.HEAD);
 
 
-            ConnectionProvider cp = new ConnectionProvider(6556);
+
+
+
             while (true)
             {
+                Console.WriteLine(front._establishedConnection);
+
+
                 Console.ReadLine();
             }
 

@@ -1,4 +1,4 @@
-﻿namespace CookieCrumbs.Utils
+﻿namespace Cookie.Utils
 {
     public class MimeHelper
     {
@@ -25,7 +25,6 @@
                     string key = parts[0].Trim();
                     string value = parts[1].Trim();
                     _mimeTypes.TryAdd(key, value);
-                    Console.WriteLine($"{key}: {value}");
                 }
             }
         }

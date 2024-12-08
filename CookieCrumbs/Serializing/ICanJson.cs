@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Reflection;
 
-namespace CookieCrumbs.Serializing
+namespace Cookie.Serializing
 {
     public interface ICanJson
     {

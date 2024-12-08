@@ -1,6 +1,6 @@
-﻿using CookieCrumbs.Serializing;
+﻿using Cookie.Serializing;
 
-namespace CookieCrumbs.ContentLibrary
+namespace Cookie.ContentLibrary
 {
 
     /// <summary>

@@ -1,11 +1,11 @@
 ﻿using System.Net;
 
-namespace CookieCrumbs.TCP
+namespace Cookie.TCP
 {
     /// <summary>
     /// Provides boilerplate HTTP responses for some common errors/etc.
     /// </summary>
-    internal partial class ResponseSender
+    public partial class ResponseSender
     {
 
         /// <summary>
@@ -16,7 +16,6 @@ namespace CookieCrumbs.TCP
         {
             if (_writtenHeader) return;
             _writtenHeader = true;
-            Headers.Clear();
 
             // Differentiate based on api or html
             string file = api ? "NotFound.json" : "NotFound.html";
@@ -40,7 +39,6 @@ namespace CookieCrumbs.TCP
         {
             if (_writtenHeader) return;
             _writtenHeader = true;
-            Headers.Clear();
 
             // Differentiate based on api or html
             string file = api ? "BadRequest.json" : "BadRequest.html";
@@ -64,7 +62,6 @@ namespace CookieCrumbs.TCP
         {
             if (_writtenHeader) return;
             _writtenHeader = true;
-            Headers.Clear();
 
             // Differentiate based on api or html
             string file = api ? "NotAuthorized.json" : "NotAuthorized.html";
@@ -89,8 +86,6 @@ namespace CookieCrumbs.TCP
             // This is whatever
             if (_writtenHeader) return;
             _writtenHeader = true;
-
-            Headers.Clear();
 
             // Configure the request
             Result = HttpStatusCode.Redirect;

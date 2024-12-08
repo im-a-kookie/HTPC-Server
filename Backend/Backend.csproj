@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CookieConnections\CookieConnections.csproj" />
     <ProjectReference Include="..\CookieCrumbs\CookieCrumbs.csproj" />
   </ItemGroup>
 

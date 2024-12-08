@@ -1,4 +1,4 @@
-﻿using CookieCrumbs.ContentLibrary;
+﻿using Cookie.ContentLibrary;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.RegularExpressions;

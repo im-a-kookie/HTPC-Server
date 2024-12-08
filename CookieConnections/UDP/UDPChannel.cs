@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CookieCrumbs.UDP
+namespace Cookie.UDP
 {
 
 
@@ -24,15 +25,49 @@ namespace CookieCrumbs.UDP
     /// simple messages to be communicated.
     /// </para>
     /// </summary>
-    internal class UDPChannel
+    public class UDPChannel
     {
+
+
+        public event Action<string>? OnReceive;
 
         public CancellationTokenSource Cancellation = new();
 
         public int ListenPort;
-        
+        public int SendPort;
+
+        public UDPChannel(int listenPort, int sendPort)
+        {
+            this.ListenPort = listenPort;
+            this.SendPort = sendPort;
+            new Thread(Listen).Start();
+        }
+
+        /// <summary>
+        /// Sends a UDP message to the given port
+        /// </summary>
+        /// <param name="message"></param>
+        public void Send(string message)
+        {
+            using UdpClient udpClient = new UdpClient();
+            udpClient.Connect("localhost", SendPort);
+            udpClient.Send(Encoding.ASCII.GetBytes(message));
+        }
+
+        /// <summary>
+        /// Sends a UDP message to the given port
+        /// </summary>
+        /// <param name="message"></param>
+        public void Send(byte[] message)
+        {
+            using UdpClient udpClient = new UdpClient();
+            udpClient.Connect("localhost", SendPort);
+            udpClient.Send(message);
+        }
+
         public async void Listen()
         {
+            Logger.Default.Debug("UDP Start on " + ListenPort);
             UdpClient udc = new UdpClient(ListenPort);
             try
             {
@@ -44,8 +79,9 @@ namespace CookieCrumbs.UDP
                     {
                         //process the result
                         var connection = result.Result;
-                        string s = Encoding.UTF8.GetString(connection.Buffer);
-                        Logger.Default.Info($"UDP: {s}");
+                        string s = Encoding.ASCII.GetString(connection.Buffer);
+                        Logger.Default.Debug($"UDP ({ListenPort}): {s}");
+                        OnReceive?.Invoke(s);
                     }
                 }
             }
@@ -55,7 +91,14 @@ namespace CookieCrumbs.UDP
             }
             finally
             {
-                udc.Dispose();
+                if (Cancellation.IsCancellationRequested)
+                {
+                    udc.Dispose();
+                }
+                else
+                {
+                    new Thread(Listen).Start();
+                }
             }
 
 

@@ -1,4 +1,4 @@
-﻿using CookieCrumbs.ContentLibrary;
+﻿using Cookie.ContentLibrary;
 
 namespace Backend.ServerLibrary
 {

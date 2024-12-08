@@ -3,11 +3,22 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
-namespace CookieCrumbs.TCP
+namespace Cookie.TCP
 {
     public class ConnectionProvider : IDisposable
     {
 
+        public delegate void RequestProcessor(RequestReader request, ResponseSender response);
+
+        /// <summary>
+        /// An event called when this connection gets an HTTP request. Note that
+        /// this may be invoked arbitrarily from almost any thread.
+        /// </summary>
+        public event RequestProcessor? OnRequest;
+
+        /// <summary>
+        /// The maximum number of listener threads permitted
+        /// </summary>
         public int MaxThreads { get; set; } = 8;
 
         /// <summary>
@@ -20,11 +31,10 @@ namespace CookieCrumbs.TCP
         /// </summary>
         private Task CancellationAwaitable;
 
-
         /// <summary>
         /// The number of connections that are currently stressed
         /// </summary>
-        public int StressedWorkers = 0;
+        public int IdleWorkers = 0;
 
         /// <summary>
         /// The TCP listener for this connection
@@ -82,6 +92,10 @@ namespace CookieCrumbs.TCP
 
             Console.WriteLine($"TCP Running on port: {port}");
             StartListener(); //obligatory start a listener
+
+            // Run the maintainer
+            new Thread(Maintain).Start();
+
         }
 
         /// <summary>
@@ -91,10 +105,7 @@ namespace CookieCrumbs.TCP
         {
             var canceller = new CancellationTokenSource();
             var listener = new ConnectionListener(this, canceller.Token);
-            LiveListeners.Add((listener, canceller));
-
-            // Run the maintainer
-            Task.Run(Maintain);
+            LiveListeners.Add((listener, canceller)); 
         }
 
         /// <summary>
@@ -102,59 +113,71 @@ namespace CookieCrumbs.TCP
         /// </summary>
         public async void Maintain()
         {
-            Stopwatch s = Stopwatch.StartNew();
-            double movingAverage = 0;
-            while (!connectionCanceller.IsCancellationRequested)
+            try
             {
-                // Do a quick tally of the total rate
-                double totalRate = 0;
-                foreach (var l in LiveListeners)
+                Stopwatch s = Stopwatch.StartNew();
+                double movingAverage = 0;
+                while (!connectionCanceller.IsCancellationRequested)
                 {
-                    int val = l.listener.RequestRateCounter;
-                    totalRate += val;
-                    // absorb the value
-                    Interlocked.Add(ref l.listener.RequestRateCounter, -val);
-                }
-
-                // Calculate the adjusted rate
-                totalRate /= (s.Elapsed.TotalMilliseconds);
-                movingAverage = (movingAverage * 5 + totalRate) / (5 + s.Elapsed.TotalSeconds);
-                s.Restart(); // Reset counter
-
-                // If there are stressed workers, then we need a new listener
-                if (LiveListeners.Count == 0 || (StressedWorkers > 0 && LiveListeners.Count < MaxThreads))
-                {
-                    StartListener();
-                    // arbitrarily increase the moving average,
-                    // This biases the request counter such that threads will be closed lazily
-                    movingAverage += LiveListeners.Count; // use 'count' to allow for *count multiplier below
-
-                }
-                else
-                {
-                    listenerSignal.Reset(); //temporarily block here
-                    while ((movingAverage < 0.05 * LiveListeners.Count) && (LiveListeners.Count > 1))
+                    // Do a quick tally of the total rate
+                    double totalRate = 0;
+                    foreach (var l in LiveListeners)
                     {
-                        for (int i = 0; i < LiveListeners.Count; i++)
+                        int val = l.listener.RequestRateCounter;
+                        totalRate += val;
+                        // absorb the value
+                        Interlocked.Add(ref l.listener.RequestRateCounter, -val);
+                    }
+
+                    // Calculate the adjusted rate
+                    totalRate /= (s.Elapsed.TotalMilliseconds);
+                    movingAverage = (movingAverage * 5 + totalRate) / (5 + s.Elapsed.TotalSeconds);
+                    s.Restart(); // Reset counter
+
+                    // If there are stressed workers, then we need a new listener
+                    if (LiveListeners.Count == 0 || (IdleWorkers <= 1 && LiveListeners.Count < MaxThreads))
+                    {
+                        StartListener();
+                        // arbitrarily increase the moving average,
+                        // This biases the request counter such that threads will be closed lazily
+                        movingAverage += LiveListeners.Count; // use 'count' to allow for *count multiplier below
+
+                    }
+                    else
+                    {
+                        listenerSignal.Reset(); //temporarily block here
+                        while ((movingAverage < 0.02 * LiveListeners.Count) && (LiveListeners.Count > 1))
                         {
-                            // Find and bonk the first idle thread
-                            if (LiveListeners[i].listener.EstimatedLiveRequests <= 0)
+                            for (int i = 0; i < LiveListeners.Count; i++)
                             {
-                                var l = LiveListeners[i];
-                                LiveListeners.RemoveAt(i);
-                                l.token.Cancel();
-                                break;
+                                // Find and bonk the first idle thread
+                                if (!LiveListeners[i].listener.Working)
+                                {
+                                    var l = LiveListeners[i];
+                                    LiveListeners.RemoveAt(i);
+                                    l.token.Cancel();
+                                    break;
+                                }
                             }
                         }
+                        // and allow the listeners to continue
+                        listenerSignal.Set();
                     }
-                    // and allow the listeners to continue
-                    listenerSignal.Set();
-                }
 
-                // Now await the monitor signal or a short delay
-                var t = Task.Run(() => monitorSignal.WaitOne(500));
-                await Task.WhenAny(t, CancellationAwaitable);
+                    // Now await the monitor signal or a short delay
+                    var t = Task.Run(() => monitorSignal.WaitOne(200));
+                    await Task.WhenAny(t, CancellationAwaitable);
+                }
             }
+            catch
+            {
+            }
+            finally
+            {
+                if (!connectionCanceller.IsCancellationRequested)
+                    new Thread(Maintain).Start();
+            }
+
         }
 
         /// <summary>
@@ -163,6 +186,12 @@ namespace CookieCrumbs.TCP
         public void Notify()
         {
             monitorSignal.Set();
+        }
+
+
+        public void CallOnRequest(RequestReader request, ResponseSender response)
+        {
+            OnRequest?.Invoke(request, response);
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-﻿namespace CookieCrumbs
+﻿namespace Cookie
 {
     /**
     The Cookie Crumbs library represents a shared library of classes

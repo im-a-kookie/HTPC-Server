@@ -1,15 +1,15 @@
-﻿using CookieCrumbs.Utils;
+﻿using Cookie.Utils;
 using System.Net;
 using System.Text;
 
-namespace CookieCrumbs.TCP
+namespace Cookie.TCP
 {
     /// <summary>
     /// Response Sender provides core methods for sending HTTP responses over an underlying stream.
     /// 
     /// This class provides most key methods for delivering text and binary/data content.
     /// </summary>
-    internal partial class ResponseSender
+    public partial class ResponseSender
     {
         /// <summary>
         /// Reference string for the HTML/JSON stubs for basic HTTP API response stuff
@@ -70,8 +70,6 @@ namespace CookieCrumbs.TCP
                 Headers[name] = value;
             }
         }
-
-
 
         /// <summary>
         /// Submits the given data, appending content-length and finalizing a request.
@@ -152,13 +150,11 @@ namespace CookieCrumbs.TCP
         /// <param name="data"></param>
         public void WriteContent(byte[] data)
         {
-            if (_writtenHeader) return;
-            _writtenHeader = true;
-
-            Write($"Content-Type: {MimeHelper.GetFromExtension(".bin")}\r\n");
-            Write($"Content-Length: {data.Length}\r\n");
-            Write("\r\n");
-            Write(data);
+            if (ActionCompleted) return;
+            Result = HttpStatusCode.OK;
+            AddHeader("Content-Type", $"{MimeHelper.GetFromExtension(".bin")}");
+            Submit(data);
+            ActionCompleted = true;
         }
 
         /// <summary>
@@ -168,15 +164,14 @@ namespace CookieCrumbs.TCP
         /// <param name="text"></param>
         public void WriteHtml(string text)
         {
-            if (_writtenHeader) return;
-            _writtenHeader = true;
-
+            if (ActionCompleted) return;
+            Result = HttpStatusCode.OK;
+            AddHeader("Content-Type", $"{MimeHelper.GetFromExtension("html")}");
+            WriteHeaders();
             byte[] data = Encoding.UTF8.GetBytes(text);
-            Write($"Content-Type: {MimeHelper.GetFromExtension("html")}\r\n");
-            Write($"Content-Length: {data.Length}\r\n");
-            Write("\r\n");
-            Write(data);
+            Submit(data);
             ActionCompleted = true;
+
         }
 
         /// <summary>
