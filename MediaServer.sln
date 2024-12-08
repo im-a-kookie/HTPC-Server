@@ -11,9 +11,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaServer.Desktop", "Medi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend", "Backend\Backend.csproj", "{C926AC90-14EC-4C37-B79F-345F68CAB571}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CookieCrumbs", "CookieCrumbs\CookieCrumbs.csproj", "{FC11CFF2-DE2A-4B6F-91EF-0CBB7954E5F3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cookie.Crumbs", "CookieCrumbs\Cookie.Crumbs.csproj", "{FC11CFF2-DE2A-4B6F-91EF-0CBB7954E5F3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CookieConnections", "CookieConnections\CookieConnections.csproj", "{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cookie.Connections", "Cookie.Connections\Cookie.Connections.csproj", "{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
