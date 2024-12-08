@@ -1,16 +1,7 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Concurrent;
 using System.Data;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 
 namespace CookieCrumbs.Serializing
 {
@@ -68,12 +59,12 @@ namespace CookieCrumbs.Serializing
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        public  string CompoundToString(ICanJson data)
+        public string CompoundToString(ICanJson data)
         {
             return CompoundToString(GetCompounded(data));
         }
-        
-        
+
+
 
 
         /// <summary>
@@ -84,19 +75,19 @@ namespace CookieCrumbs.Serializing
         public object? Rebuild(Dictionary<string, object> data)
         {
             // let's seek depth first into the tree
-            foreach(var key in data.Keys.ToArray())
+            foreach (var key in data.Keys.ToArray())
             {
                 var value = data[key];
-                if(value is Dictionary<string, object> child)
+                if (value is Dictionary<string, object> child)
                 {
                     // Recursively reconstruct ICanJsons
                     var instance = Rebuild(child);
-                    if(instance != null) data[key] = instance;
+                    if (instance != null) data[key] = instance;
                 }
-                else if(value is IList<Dictionary<string, object>> list)
+                else if (value is IList<Dictionary<string, object>> list)
                 {
                     List<ICanJson?> datas = new();
-                    for(int i = 0; i < list.Count; ++i)
+                    for (int i = 0; i < list.Count; ++i)
                     {
                         var input = Rebuild(list[i]);
                         if (input != null)
@@ -110,9 +101,9 @@ namespace CookieCrumbs.Serializing
 
             // We have now reached the bottom of this given branch
             // So let's try to remake an object
-            if(data.TryGetValue(ID, out var val))
+            if (data.TryGetValue(ID, out var val))
             {
-                if(Rebuilders.TryGetValue(val.ToString(), out var builder))
+                if (Rebuilders.TryGetValue(val.ToString(), out var builder))
                 {
                     // make a new one, and populate it
                     var newContainer = builder();
@@ -120,33 +111,33 @@ namespace CookieCrumbs.Serializing
                     return newContainer;
                 }
             }
-            
+
             // We could not build this dictionary into an object
             // So return null
             return data;
 
         }
 
-        static Dictionary<string, object?> JsonToDictionary(JsonNode? jsonNode)
-    {
-        var result = new Dictionary<string, object?>();
-
-        if (jsonNode is JsonObject jsonObject)
+        private static Dictionary<string, object?> JsonToDictionary(JsonNode? jsonNode)
         {
-            foreach (var kvp in jsonObject)
-            {
-                result[kvp.Key] = kvp.Value switch
-                {
-                    JsonObject obj => JsonToDictionary(obj),
-                    JsonArray arr => arr.Select(JsonToDictionary).ToList(),
-                    JsonValue val => val.GetValue<object>(),
-                    _ => null
-                };
-            }
-        }
+            var result = new Dictionary<string, object?>();
 
-        return result;
-    }
+            if (jsonNode is JsonObject jsonObject)
+            {
+                foreach (var kvp in jsonObject)
+                {
+                    result[kvp.Key] = kvp.Value switch
+                    {
+                        JsonObject obj => JsonToDictionary(obj),
+                        JsonArray arr => arr.Select(JsonToDictionary).ToList(),
+                        JsonValue val => val.GetValue<object>(),
+                        _ => null
+                    };
+                }
+            }
+
+            return result;
+        }
 
 
         /// <summary>
@@ -183,10 +174,10 @@ namespace CookieCrumbs.Serializing
         /// <param name="dictionary"></param>
         internal void Compound(Dictionary<string, object> dictionary)
         {
-            foreach(var k in dictionary.Keys.ToArray())
+            foreach (var k in dictionary.Keys.ToArray())
             {
                 var value = dictionary[k];
-                if(value is ICanJson subtype)
+                if (value is ICanJson subtype)
                 {
                     var container = GetCompounded(subtype);
                     dictionary[k] = container;
@@ -194,7 +185,7 @@ namespace CookieCrumbs.Serializing
                 else
                 {
                     var t = value.GetType();
-                    if(t.IsGenericType)
+                    if (t.IsGenericType)
                     {
                         var _t = t.GetGenericTypeDefinition();
                         if (_t.IsAssignableTo(typeof(List<>)))

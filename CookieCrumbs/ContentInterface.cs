@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using CookieCrumbs.TCP;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CookieCrumbs
 {
@@ -24,26 +20,19 @@ namespace CookieCrumbs
     public class ContentInterface
     {
 
-        public static ContentInterface CreateLocalInterface(int ListenPort = 61994)
-        {
-            var host = new ContentInterface(HostMode.LOCAL);
-            host.Port = ListenPort;
-
-            return host;
-        }
-
-        public static ContentInterface CreateRemoteInterface(string HostIp = "localhost", int Port = 61994)
-        {
-            var host = new ContentInterface(HostMode.REMOTE);
-            host.Port = Port;
-
-            return host;
-        }
-
-
+        /// <summary>
+        /// The mode of this content interface
+        /// </summary>
         public HostMode Mode { get; private set; }
 
+        /// <summary>
+        /// The port for this content interface
+        /// </summary>
         public int Port { get; private set; }
+
+        public ConnectionProvider? BackendProvider { get; private set; }
+
+
 
         /// <summary>
         /// Creates a new content interface in the given host mode. Remote mode
@@ -52,8 +41,18 @@ namespace CookieCrumbs
         /// interface will manage its own access to a filesystem.
         /// </summary>
         /// <param name="mode"></param>
-        public ContentInterface(HostMode mode)
+        public ContentInterface(int port, HostMode mode, X509Certificate2? ssl = null)
         {
+
+            // The local model provides a TCP server
+            // While the front-end model will typically only request to this server
+            if(mode == HostMode.LOCAL)
+            {
+                BackendProvider = new ConnectionProvider(port);
+            }
+
+
+
 
         }
 
@@ -67,7 +66,7 @@ namespace CookieCrumbs
 
 
 
-        
+
 
 
 

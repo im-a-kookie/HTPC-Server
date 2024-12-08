@@ -1,11 +1,4 @@
-﻿using CookieCrumbs;
-using CookieCrumbs.Serializing;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CookieCrumbs.Serializing;
 
 namespace CookieCrumbs.ContentLibrary
 {
@@ -52,7 +45,7 @@ namespace CookieCrumbs.ContentLibrary
         /// number of files that it contains
         /// </summary>
         public bool PredictMovie => EpisodeList.Count == 1;
- 
+
         /// <summary>
         /// Converts this series object into a json that describes
         /// the entire inner layout.
@@ -74,7 +67,7 @@ namespace CookieCrumbs.ContentLibrary
          *
          */
 
-        static string CapitalizeTitle(string title)
+        private static string CapitalizeTitle(string title)
         {
             // List of small words that should not be capitalized unless they're the first or last word
             HashSet<string> smallWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -106,7 +99,7 @@ namespace CookieCrumbs.ContentLibrary
             return string.Join(" ", formattedWords);
         }
 
-        static string CapitalizeWord(string word)
+        private static string CapitalizeWord(string word)
         {
             if (string.IsNullOrEmpty(word))
                 return word;
