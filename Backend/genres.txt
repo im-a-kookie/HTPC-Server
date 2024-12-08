@@ -1,0 +1,57 @@
+Action
+Superhero
+Drama
+Police
+Legal
+Medical
+Sci-Fi
+Horror
+Tragedy
+Romance
+Rom-Com
+Comedy
+Black Comedy
+War
+Thriller
+Psychological
+Military
+Political
+Historical
+Foreign
+Anime
+Isekai
+Nature
+Travel
+Science
+Biographical
+Musical
+Wildlife
+Western
+Steampunk
+Cyberpunk
+Time Travel
+Paranormal
+Supernatural
+Urban Fantasy
+High Fantasy
+Fantasy
+Epic
+Dystopian
+Sature
+Noir
+Sport
+Martial Arts
+Family
+History
+Horror
+Adventure
+Animated
+Cartoon
+Anthology
+Miniseries
+Game Show
+Reality TV
+Talent
+Home Renovation
+DIY
+Survival
