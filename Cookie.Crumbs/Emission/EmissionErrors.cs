@@ -29,5 +29,7 @@ namespace Cookie.Emission
 
         public static Error UnmappedTargets = new("Unmapped Targets", "The mapping does not map all targets", (m, e) => new InvalidOperationException(m, e));
 
+        public static Error DynamicMethodCreationFailed = new("Dynamic Method Failure", "Was not able to create dynamic method!", (m, e) => new InvalidOperationException(m, e));
+
     }
 }

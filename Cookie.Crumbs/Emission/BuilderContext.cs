@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -130,6 +131,32 @@ namespace Cookie.Emission
                 // Rather than crashing, we should just give a warning, since this may be intended behaviour
                 Messages.StaticMethodNoInstance.Warn($"Target Caller: {GetQualifiedTargetName()}");
             }
+        }
+
+
+        /// <summary>
+        /// Creates a stub dynamic method with parameters and returns set according to the
+        /// provided caller and target method.
+        /// </summary>
+        /// <returns>An empty <see cref="DynamicMethod"/> with parameters configured according to this context.</returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public DynamicMethod CreateDynamicMethod()
+        {
+            try
+            {
+                return new DynamicMethod(
+                    name: $"Callback_{Target.Name}",
+                    returnType: EntryReturn,
+                    parameterTypes: EntryParams,
+                    m: Target.DeclaringType!.Module,
+                    skipVisibility: true
+                    );
+            }
+            catch (Exception e)
+            {
+                throw EmissionErrors.DynamicMethodCreationFailed.Get(innerException: e);
+            }
+
         }
 
 
