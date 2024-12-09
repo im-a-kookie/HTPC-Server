@@ -1,4 +1,5 @@
-﻿using Cookie.Utils;
+﻿using Cookie.Crumbs.Utils;
+using Cookie.Utils;
 using System.Net;
 using System.Text;
 
@@ -14,7 +15,7 @@ namespace Cookie.TCP
         /// <summary>
         /// Reference string for the HTML/JSON stubs for basic HTTP API response stuff
         /// </summary>
-        public static string StubRoot = "CookieCrumbs.TCP.Stubs.";
+        public static string StubRoot = "Cookie.Connections.TCP.Stubs.";
 
 
         /// <summary>
@@ -78,8 +79,8 @@ namespace Cookie.TCP
         internal void SubmitResource(string path)
         {
             string? content = ResourceTool.GetResource($"{StubRoot}{path}");
-            if (content == null) throw new Exception($"Cannot submit: {path}. Resource not found!");
-            Submit(content);
+            if (content == null) throw GenericErrors.MissingResource.Get($"Requested Path: {path}");
+            Submit(content!);
         }
 
 

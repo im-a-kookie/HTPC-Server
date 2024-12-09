@@ -1,45 +1,48 @@
 ﻿using System.Text;
 
-public class AppendingWriter : TextWriter
+namespace Cookie.Utils
 {
-
-    private readonly string _filePath;
-    public AppendingWriter(string filePath)
+    public class AppendingWriter : TextWriter
     {
-        _filePath = filePath;
 
-        //validate the path
-        File.AppendAllText(filePath, "");
-        if (!File.Exists(filePath))
+        private readonly string _filePath;
+        public AppendingWriter(string filePath)
         {
-            throw new FileNotFoundException($"The log file {filePath} could not be generated!");
+            _filePath = filePath;
+
+            //validate the path
+            File.AppendAllText(filePath, "");
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException($"The log file {filePath} could not be generated!");
+            }
+
         }
 
-    }
+        public override Encoding Encoding => Encoding.UTF8;
 
-    public override Encoding Encoding => Encoding.UTF8;
-
-    public override void Write(char value)
-    {
-        using (var writer = new StreamWriter(_filePath, append: true))
+        public override void Write(char value)
         {
-            writer.Write(value);
+            using (var writer = new StreamWriter(_filePath, append: true))
+            {
+                writer.Write(value);
+            }
         }
-    }
 
-    public override void Write(string? value)
-    {
-        using (var writer = new StreamWriter(_filePath, append: true))
+        public override void Write(string? value)
         {
-            writer.Write(value);
+            using (var writer = new StreamWriter(_filePath, append: true))
+            {
+                writer.Write(value);
+            }
         }
-    }
 
-    public override void WriteLine(string? value)
-    {
-        using (var writer = new StreamWriter(_filePath, append: true))
+        public override void WriteLine(string? value)
         {
-            writer.WriteLine(value);
+            using (var writer = new StreamWriter(_filePath, append: true))
+            {
+                writer.WriteLine(value);
+            }
         }
     }
 }

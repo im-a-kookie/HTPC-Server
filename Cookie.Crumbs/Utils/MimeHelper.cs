@@ -1,4 +1,6 @@
-﻿namespace Cookie.Utils
+﻿using Cookie.Crumbs.Utils;
+
+namespace Cookie.Utils
 {
     public class MimeHelper
     {
@@ -15,9 +17,9 @@
             //make sure we actually found it
             if (content == null)
             {
-                throw new FileNotFoundException("Internal MIME type data not found!");
+                throw GenericErrors.MissingResource.Get("Mime Index, " + resourceName);
             }
-            foreach (string line in content.Split("\n"))
+            foreach (string line in content!.Split("\n"))
             {
                 var parts = line.Split(",");
                 if (parts.Length == 2)

@@ -2,7 +2,7 @@
 
 namespace Cookie.Utils
 {
-    internal class ResourceTool
+    public class ResourceTool
     {
         /// <summary>
         /// Gets the embedded file from the given path.

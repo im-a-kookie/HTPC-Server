@@ -1,6 +1,7 @@
 ﻿using Cookie.ContentLibrary;
 using Cookie.TCP;
 using Cookie.UDP;
+using Cookie.Utils;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
@@ -85,7 +86,7 @@ namespace Cookie
                     ClientPort = backendPort + Interlocked.Increment(ref LocalCreated);
                     if (LocalCreated >= 2)
                     {
-                        Logger.Default.Warn("Local instances should have only one local head!");
+                        Logger.Warn(Messages.InsufficientAddressLength);
                     }
                 }
 
@@ -108,7 +109,7 @@ namespace Cookie
             BackendProvider = new ConnectionProvider(Port);
 
             // Setup a message channel
-            Logger.Default.Info($"Initializing Backend UDP on {Port}.");
+            Logger.Info($"Initializing Backend UDP on {Port}.");
             MessageChannel = new UDPChannel(Port, ClientPort);
 
             // Set up a simple packet receiver to allow clients
@@ -163,8 +164,8 @@ namespace Cookie
         private void ConfigureFrontend()
         {
             //notify the server
-            Logger.Default.Info($"Initializing Frontend. Remote: {Mode.HasFlag(HostMode.REMOTE)}");
-            Logger.Default.Info($"Initializing Head UDP on Port {ClientPort}. Server Expected At {Port}");
+            Logger.Info($"Initializing Frontend. Remote: {Mode.HasFlag(HostMode.REMOTE)}");
+            Logger.Info($"Initializing Head UDP on Port {ClientPort}. Server Expected At {Port}");
             MessageChannel = new UDPChannel(ClientPort, Port);
 
             // set up a simple listener that will catch when the backend responds
@@ -175,7 +176,7 @@ namespace Cookie
                 {
                     if (s == $"confirm:{ClientPort}")
                     {
-                        Logger.Default.Info("Head established server connection!");
+                        Logger.Info("Head established server connection!");
                         _establishedConnection = true;
                         MessageChannel.OnReceive -= x;
                     }
@@ -201,7 +202,7 @@ namespace Cookie
 
         private void ConfigureRemote()
         {
-            Logger.Default.Info($"Configuring Head in Remote mode.");
+            Logger.Info($"Configuring Head in Remote mode.");
 
 
 

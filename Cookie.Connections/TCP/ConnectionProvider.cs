@@ -1,11 +1,12 @@
-﻿using System.Diagnostics;
+﻿using Cookie.Addressing;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Cookie.TCP
 {
-    public class ConnectionProvider : IDisposable
+    public class ConnectionProvider : Addressable, IDisposable
     {
 
         public delegate void RequestProcessor(RequestReader request, ResponseSender response);
@@ -248,6 +249,10 @@ namespace Cookie.TCP
             monitorSignal.Dispose();
         }
 
-
+        public override void Exit()
+        {
+            var t = Close();
+            Task.WaitAll(t);
+        }
     }
 }

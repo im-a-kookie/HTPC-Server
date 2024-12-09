@@ -1,11 +1,13 @@
-﻿using System.Linq.Expressions;
+﻿using Cookie.Addressing;
+using Cookie.Utils;
+using System.Linq.Expressions;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 
 namespace Cookie.TCP
 {
-    internal class ConnectionListener
+    internal class ConnectionListener : Addressable
     {
 
         /// <summary>
@@ -155,7 +157,7 @@ namespace Cookie.TCP
 
                 // Authenticate the server using the SSL certificate.
                 await sslStream.AuthenticateAsServerAsync(connection.SSL, false, SslProtocols.Tls12, true);
-                Console.WriteLine("SSL handshake completed.");
+                Logger.Debug($"Established SSL connection on {client.Client.RemoteEndPoint}");
                 return sslStream;
             }
             else
@@ -184,7 +186,7 @@ namespace Cookie.TCP
             }
             catch(Exception e)
             {
-                Logger.Default.Error($"TCP Client Listener threw: {e}");
+                Logger.Error($"TCP Client Listener threw: {e}");
             }
             finally
             {
@@ -192,15 +194,9 @@ namespace Cookie.TCP
             }
         }
 
-
-
-
-
-
-
-
-
-
-
+        public override void Exit()
+        {
+            
+        }
     }
 }

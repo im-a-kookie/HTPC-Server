@@ -7,8 +7,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Server\DelegateBuilder.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="TCP\Stubs\NotFound.html" />
     <EmbeddedResource Include="TCP\Stubs\NotFound.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Server\DelegateBuilder.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cookie.Crumbs\Cookie.Crumbs.csproj" />
   </ItemGroup>
 
 </Project>

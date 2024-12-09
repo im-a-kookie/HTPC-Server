@@ -1,7 +1,9 @@
 ﻿using Cookie;
 using Cookie.ContentLibrary;
+using Cookie.Crumbs.Utils;
 using Cookie.Serializing;
 using Cookie.TCP;
+using Cookie.Utils;
 
 namespace Backend.ServerLibrary
 {
@@ -12,23 +14,6 @@ namespace Backend.ServerLibrary
 
         public static void Main(string[] args)
         {
-
-
-            ContentInterface back = new ContentInterface(16643, null, HostMode.BACKEND);
-            ContentInterface front = new ContentInterface(16643, null, HostMode.HEAD);
-
-
-
-
-
-            while (true)
-            {
-                Console.WriteLine(front._establishedConnection);
-
-
-                Console.ReadLine();
-            }
-
 
             // Register the serializer reconstructors for the local builder
             localSerializer.RegisterBuilder("File", () => new MediaFile());
@@ -43,8 +28,6 @@ namespace Backend.ServerLibrary
 
             var searcher = new Searcher("E:/");
             var lib = searcher.Enumerate(4);
-
-
 
 
 

@@ -4,6 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	<RootNamespace>Cookie</RootNamespace>
   </PropertyGroup>
 
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net7.0-wasm'">
@@ -19,11 +20,19 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="DelegateBuilder.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
     <None Remove="Utils\mimes.txt" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Utils\mimes.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Emission\DelegateBuilder.cs" />
   </ItemGroup>
 
 </Project>

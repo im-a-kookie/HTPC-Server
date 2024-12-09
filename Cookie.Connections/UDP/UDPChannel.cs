@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Cookie.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -67,7 +68,7 @@ namespace Cookie.UDP
 
         public async void Listen()
         {
-            Logger.Default.Debug("UDP Start on " + ListenPort);
+            Logger.Debug("UDP Start on " + ListenPort);
             UdpClient udc = new UdpClient(ListenPort);
             try
             {
@@ -80,14 +81,14 @@ namespace Cookie.UDP
                         //process the result
                         var connection = result.Result;
                         string s = Encoding.ASCII.GetString(connection.Buffer);
-                        Logger.Default.Debug($"UDP ({ListenPort}): {s}");
+                        Logger.Debug($"UDP ({ListenPort}): {s}");
                         OnReceive?.Invoke(s);
                     }
                 }
             }
             catch(Exception e)
             {
-                Logger.Default.Warn($"Error occured in UDP Listener: {e}");
+                Logger.Warn($"Error occured in UDP Listener: {e}");
             }
             finally
             {
