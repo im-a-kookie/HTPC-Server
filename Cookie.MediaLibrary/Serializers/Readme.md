@@ -30,9 +30,9 @@ Indulgents*
 	Level 2*sDouble Choc;
 	Others*
 	{m
-		White*Chocolate;
-		Alternative*Caramilk;
-		Butterscotch*Mmmm;
+		White*sChocolate;
+		Alternative*sCaramilk;
+		Butterscotch*sMmmm;
 	};
 };
 Serving Options*
