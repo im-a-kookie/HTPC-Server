@@ -1,4 +1,6 @@
-﻿namespace Cookie.ContentLibrary
+﻿using Cookie.Serializers;
+
+namespace Cookie.ContentLibrary
 {
     public class Title : BasicSerial
     {

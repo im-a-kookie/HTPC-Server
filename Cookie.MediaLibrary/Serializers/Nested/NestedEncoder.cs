@@ -6,7 +6,7 @@ namespace Cookie.Serializers.Nested
     /// <summary>
     /// Establishes some utility methods for <see cref="NestedSerial"/>
     /// </summary>
-    public class Serializer
+    public class NestedEncoder
     {
 
         /// <summary>

@@ -1,4 +1,5 @@
 ﻿using Cookie.ContentLibrary;
+using Cookie.Serializers.Nested;
 using Cookie.Serializing;
 using System.Diagnostics;
 using System.Text;
@@ -36,9 +37,8 @@ namespace Backend.ServerLibrary
             test.Add("chocolate", new List<string>() { "milk", "cookies", "ice-cream" });
 
 
-            var result = new NestedSerial().Condense(test, 0);
-
-            new NestedSerial().Process($"{{{result}}}");
+            var result = NestedEncoder.Condense(test, 0);
+            NestedDecoder.Process($"{{{result}}}");
 
 
 

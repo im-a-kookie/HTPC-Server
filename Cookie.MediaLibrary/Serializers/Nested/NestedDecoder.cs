@@ -1,9 +1,26 @@
 ﻿namespace Cookie.Serializers.Nested
 {
-    internal class Deserializers
+    public class NestedDecoder
     {
+
+        public static object Destringify(string value)
+        {
+            var span = value.AsSpan();
+            char i = span[0];
+            span = span.Slice(1);
+
+            switch (i)
+            {
+                case 'i': return int.TryParse(span, out var n) ? n : -1;
+                case 'f': return double.TryParse(span, out var d) ? d : -1;
+                case 's': return span.ToString();
+            }
+            return value;
+        }
+
+
         /// <summary>
-        /// Processes a given body string as serialized by the 
+        /// Processes a given body string as serialized by methods in <see cref="Serializers.Nested.NestedEncoder"/>
         /// </summary>
         /// <param name="body"></param>
         public static void Process(string body)
@@ -25,6 +42,7 @@
             if (closePos > 0)
             {
                 // Add a new Node after the first closing brace.
+                // cutting this manually seems simpler
                 last = first.AddAfter(closePos);
 
                 // Continue processing while there are closing braces.
@@ -44,7 +62,7 @@
                         while (open!.start > openPos) open = open.Previous!;
 
                         // Add a new Node before the current opening brace and mark it as closed.
-                        Node current = openPos == 0 ? open : open.AddBefore(openPos);
+                        Node? current = openPos == 0 ? open : open.AddBefore(openPos);
                         prevAdded = current;
 
                         // Update the first Node if the new Node is earlier in the sequence.
@@ -55,21 +73,16 @@
 
                         // Adjust Nodes to account for depth changes and split Nodes if necessary.
                         Node added = current;
-                        while (true)
+                        while (current != null)
                         {
+                            // catch nodes that encapsulte the closing brace
                             if (current.start < closePos && current.end > closePos)
                             {
                                 // Split the current Node at the closing brace position and adjust depth.
                                 var _break = current.AddBefore(closePos);
                                 break;
                             }
-                            // Step forwards
-                            if (current.Next != null)
-                            {
-                                current = current.Next;
-                                continue;
-                            }
-                            break; // Exit if no more Nodes to process.
+                            current = current.Next;
                         }
                     }
                     else break; // Exit if no opening brace is found.
@@ -83,12 +96,16 @@
                 }
             }
 
-            Clean(first, body, span);
+            PopulateDepthAndClean(first, body, span);
             // Move to the next step
             Process(first, body, span);
         }
 
-
+        /// <summary>
+        /// Simple debug trace
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="body"></param>
         internal static void Debug(Node node, string body)
         {
             Console.WriteLine("Body Length: " + body.Length);
@@ -105,23 +122,29 @@
         }
 
         /// <summary>
-        /// Clean the stack hierarchy
+        /// Clean the node list, cleans empty nodes where possible, trims whitespace, and populates
+        /// depth information through the nodes.
+        /// 
+        /// <para>Depth information is critical during rebuilding later, and is much easier to trace here
+        /// than during list construction, so this method MUST be called.
+        /// </para>
         /// </summary>
         /// <param name="first"></param>
         /// <param name="body"></param>
         /// <param name="span"></param>
-        internal static void Clean(Node first, string body, Span<char> span)
+        private static void PopulateDepthAndClean(Node first, string body, Span<char> span)
         {
             Node? n = first;
             int depth = 0;
             while (n != null)
             {
                 // Some nodes are empty, but there is an edge case where stripping empty nodes
-                // may strip stack changes and invalidate the depth stack, so we need to allow
+                // may strip depth changes and invalidate the depth stack, so we need to allow
                 // for this....
                 int len = n.end - n.start;
                 if (len <= 0)
                 {
+                    // It only matters if a stripped node would dip below the current frame
                     if (n.Previous != null && n.Next != null)
                     {
                         if (n.depth >= n.Previous.depth || n.depth >= n.Next.depth)
@@ -154,7 +177,7 @@
                 // If we zeroed it, then remove it
                 if (len <= 0 || len == 1 && span[n.start] == ';')
                 {
-                    // again, the same depth edge case
+                    // As before, handling depth tracing
                     if (n.Previous != null && n.Next != null)
                     {
                         if (n.depth >= n.Previous.depth || n.depth >= n.Next.depth)
@@ -163,14 +186,12 @@
                             n.Previous.Next = n.Next;
                         }
                     }
-
                     n.start = -1;
                 }
-
                 n = n.Next;
             }
-
         }
+
         /// <summary>
         /// Process a node hierarchy from the given first node, using the given underlying
         /// span information.
@@ -179,7 +200,7 @@
         /// <param name="body"></param>
         /// <param name="arr"></param>
         /// <param name="span"></param>
-        internal static void Process(Node first, string body, Span<char> span)
+        private static void Process(Node first, string body, Span<char> span)
         {
             // iterate forwards
             Node? n = first;
@@ -188,14 +209,14 @@
             n.data = new Dictionary<string, object>();
 
             // Stack for tracking nodes as we move through the depth hierarchy
-            Stack<Node?> stack = new();
+            Stack<Node?> depthStack = new();
 
             while (n != null)
             {
                 // Manage the stack
                 Node? previousLevel = null;
-                while (stack.Count < n.depth - 1) stack.Push(null);
-                while (stack.Count >= n.depth) previousLevel = stack.Pop();
+                while (depthStack.Count < n.depth - 1) depthStack.Push(null);
+                while (depthStack.Count >= n.depth) previousLevel = depthStack.Pop();
 
                 // We must keep bonked nodes to track depth
                 // but... yeah
@@ -204,13 +225,13 @@
                     n = n.Next;
                     continue;
                 }
-                else stack.Push(n);
+                else depthStack.Push(n);
 
                 // Compute the local object
                 // This is always either a dictionary or a list
                 n.data ??= DeserializeContainer(span.Slice(n.start, n.end - n.start));
 
-                stack.Push(n);
+                depthStack.Push(n);
 
                 // Walk through bonked entries
                 Node? previousNode = n.Previous;
@@ -245,30 +266,18 @@
                     if (previousNode.data is Dictionary<string, object?> dict)
                     {
                         // If we are using a key already, having merged into a previous frame
-                        if (key != null)
-                        {
-                            if (!dict.TryAdd(key, n.data))
-                            {
-                                dict[key] = n.data;
-                            }
-                        }
+                        if (key != null) dict[key] = n.data;
                         else
                         {
-                            // We need to read the key of the frame immediately before us
                             if (prev.EndsWith("*"))
                             {
-                                int index = prev.Slice(1).LastIndexOf(";");
-                                if (index < 0) index = 1;
-                                else index += 3;
+                                int index = prev.Slice(1).LastIndexOf(";") + 3;
+                                index = index < 1 ? 1 : index; // Ensure index is at least 1
 
-                                // Read the value we should have
                                 if (index < prev.Length - 1)
                                 {
                                     prev = prev.Slice(index, prev.Length - index - 1).Trim();
-                                    if (!dict.TryAdd(prev.ToString(), n.data))
-                                    {
-                                        dict[prev.ToString()] = n.data;
-                                    }
+                                    dict[prev.ToString()] = n.data;
                                 }
                             }
                         }
@@ -314,7 +323,7 @@
         /// <param name="target"></param>
         /// <param name="span"></param>
         /// <param name="key"></param>
-        internal static void MergeBackwards(Node n, Node? target, Span<char> span, out string? key)
+        private static void MergeBackwards(Node n, Node? target, Span<char> span, out string? key)
         {
             key = null;
             if (target == null) return;
@@ -347,91 +356,117 @@
             }
         }
 
+
+
         /// <summary>
-        /// Deserializes the given span into either a List of strings, or a string-keyed dictionary containing either
-        /// strings, or objects.
-        /// 
-        /// This method does not populate sub-keys of dictionaries. Empty values are intended to be filled further up the 
-        /// processing pipeline.
+        /// Deserializes the given span into either a List of strings or a string-keyed dictionary 
+        /// containing either strings or objects.
+        /// This method does not populate sub-keys of dictionaries. Empty values are intended to 
+        /// be filled further up the processing pipeline.
         /// </summary>
-        /// <param name="span"></param>
-        /// <returns></returns>
-        internal static object? DeserializeContainer(Span<char> span)
+        /// <param name="span">The span to deserialize.</param>
+        /// <returns>The deserialized object (List or Dictionary) or null for unsupported input.</returns>
+        /// <exception cref="ArgumentException">Thrown when input is invalid or malformed.</exception>
+        private static object? DeserializeContainer(ReadOnlySpan<char> span)
         {
-            // if the prefix is m, then we are in a mapping
-            // and if the prefix is ";" then we are in a mapping and between {} groups
-            // Both cases create a dictionary
-            if (span[0] == ';' || span[0] == 'm')
+            if (span.IsEmpty)
+                throw new ArgumentException("Input span cannot be empty.");
+
+            char prefix = span[0];
+            // ; and m indicate that this is a generic mapping
+            if (prefix == ';' || prefix == 'm')
+                return DeserializeMapping(span.Slice(1));
+
+            // l or d indicate that this is a simpler list/dictionary string enumeration
+            else if (prefix == 'l' || prefix == 'd')
+                return DeserializeListOrDictionary(span.Slice(1), prefix == 'd');
+
+            // Bonk otherwise
+            throw new ArgumentException($"Unsupported prefix '{prefix}' in span.");
+        }
+
+        /// <summary>
+        /// Deserializes a mapping construct represented by the given span
+        /// </summary>
+        private static Dictionary<string, object?> DeserializeMapping(ReadOnlySpan<char> span)
+        {
+            Dictionary<string, object?> result = new();
+            int pos = 0;
+
+            // manual "split" by stepping to each location of the split delimiter.
+            // uUsing Span makes it faster
+            while (pos < span.Length)
             {
-                Dictionary<string, object?> result = new();
-                // let's go piece by piece
-                int pos = 1;
-                while (pos > 0 && pos < span.Length)
-                {
-                    // get the next one after the current one
-                    int next = span.Slice(pos).IndexOf(";");
-                    if (next < 0) next = span.Length;
-                    else next += pos;
+                // get the entry delimiter, or the end of the block
+                int next = span.Slice(pos).IndexOf(';');
+                if (next < 0) next = span.Length;
+                else next += pos;
 
-                    // Slice out the part we want
-                    var split = span.Slice(pos, next - pos).Trim();
-                    if (split.Length > 0)
-                    {
-                        // Find the asterisk key delimiter
-                        int keyPos = split.IndexOf("*");
-                        if (keyPos > 0)
-                        {
-                            // Split out the key and get the value, or null
-                            var key = split.Slice(0, keyPos).Trim();
-                            string? value = null;
-                            if (keyPos < split.Length - 1)
-                            {
-                                value = split.Slice(keyPos + 1).Trim().ToString();
-                            }
-                            // store
-                            result.TryAdd(key.ToString(), value);
-                        }
-                    }
-                    // No next -> next = -1, so pos is now 0
-                    pos = next <= 0 ? -1 : next + 1;
+                // now process the entry
+                var segment = span.Slice(pos, next - pos).Trim();
+                if (!segment.IsEmpty)
+                {
+                    // Mappings must have Key*, so find it
+                    int keyDelimiter = segment.IndexOf('*');
+                    if (keyDelimiter < 0)
+                        throw new ArgumentException($"Malformed mapping entry: '{segment.ToString()}'. Missing Key!");
+
+                    // now slice out the key/value
+                    var key = segment.Slice(0, keyDelimiter).Trim();
+                    var value = keyDelimiter < segment.Length - 1
+                        ? segment.Slice(keyDelimiter + 1).Trim()
+                        : ReadOnlySpan<char>.Empty;
+
+                    if (!key.IsEmpty)
+                        result.TryAdd(key.ToString(), value.IsEmpty ? null : Destringify(value.ToString()));
+                    else
+                        throw new ArgumentException("Mapping key cannot be empty.");
                 }
-                return result;
+
+                // and move past the semicolon
+                pos = next + 1;
             }
-            // Lists and string-dicts are essentially the same
-            else if (span[0] == 'l' || span[0] == 'd')
+
+            return result;
+        }
+
+        /// <summary>
+        /// Deserializes a list or string-keyed dictionary represented by a span.
+        /// </summary>
+        private static object DeserializeListOrDictionary(ReadOnlySpan<char> span, bool isDictionary)
+        {
+            List<string> results = new();
+            int pos = 0;
+
+            // Same as mapping deserializer, jump to each entry delimiter and process
+            while (pos < span.Length)
             {
-                List<string> results = [];
-                int pos = 1;
-                while (pos > 0 && pos <= span.Length)
-                {
-                    // get the next one after the current one
-                    int next = span.Slice(pos).IndexOf(";");
-                    if (next < 0) next = span.Length;
-                    else next += pos;
+                int next = span.Slice(pos).IndexOf(';');
+                if (next < 0) next = span.Length;
+                else next += pos;
 
-                    // Now cut out the split region and add it to the list
-                    var split = span.Slice(pos, next - pos).Trim();
-                    if (split.Length > 0)
-                    {
-                        results.Add(split.ToString());
-                    }
-                    // No next -> next = -1, so pos is now 0
-                    pos = next <= 0 ? -1 : next + 1;
-                }
-                // If it's a string-dict, then we can simply
-                // boink the list entries by the squiggle
-                if (span[0] == 'd')
-                {
-                    return results
-                        .Select(x => x.Split("~"))
-                        .Where(x => x.Length == 2)
-                        .Select(x => (x[0], x[1]))
-                        .ToDictionary();
-                }
-                else return results;
+                // but only need the value here, so... easy
+                var segment = span.Slice(pos, next - pos).Trim();
+                if (!segment.IsEmpty)
+                    results.Add(segment.ToString());
+
+                pos = next + 1;
             }
-            return null;
 
+            // Now just remap dictionary based on key-value pairing
+            if (isDictionary)
+            {
+                return results
+                    .Select(entry =>
+                    {
+                        string[] parts = entry.Split('~');
+                        if (parts.Length != 2)
+                            throw new ArgumentException($"Malformed dictionary entry: '{entry}'. Key/Value malformatted.");
+                        return (Key: parts[0], Value: parts[1]);
+                    })
+                    .ToDictionary(pair => pair.Key, pair => (object?)pair.Value);
+            }
+            return results;
         }
 
 

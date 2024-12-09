@@ -1,7 +1,8 @@
 ﻿namespace Cookie.Serializers.Nested
 {
-    public partial class NestedSerial
+    public abstract class IDictSerial
     {
+
 
 
 
