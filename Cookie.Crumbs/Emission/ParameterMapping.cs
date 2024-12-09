@@ -1,8 +1,4 @@
-﻿using Cookie.Crumbs.Utils;
-using System;
-using System.Reflection;
-
-namespace Cookie.Emission
+﻿namespace Cookie.Emission
 {
     /// <summary>
     /// Helper class that provides useful methods for investigating the parameters of methods.
@@ -12,7 +8,7 @@ namespace Cookie.Emission
 
 
 
-                /// <summary>
+        /// <summary>
         /// Checks type assignability of the given types.
         /// </summary>
         /// <param name="entry"></param>
@@ -144,7 +140,7 @@ namespace Cookie.Emission
         /// <param name="ei"></param>
         internal static void MapDirectlyAssignable(MappingContext context, Type t, Type e, int ti, int ei)
         {
-            if(t == typeof(object))
+            if (t == typeof(object))
             {
                 // Objects are mapped aggressively
                 if (e == typeof(object)) context.Map(ti, ei);

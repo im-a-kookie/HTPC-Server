@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Cookie.Emission
+﻿namespace Cookie.Emission
 {
     /// <summary>
     /// Maps parameters from entry->target for delegate construction

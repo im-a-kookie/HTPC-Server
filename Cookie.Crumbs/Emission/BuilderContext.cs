@@ -1,11 +1,7 @@
 ﻿using Cookie.Utils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Cookie.Emission
 {
@@ -58,11 +54,11 @@ namespace Cookie.Emission
             this.Target = target;
 
             EmissionErrors.IncorrectTargetType.Assert(
-                 target.DeclaringType == null, 
+                 target.DeclaringType == null,
                 "Method: " + target.ToString());
 
             EmissionErrors.IncorrectTargetType.Assert(
-                !target.DeclaringType!.IsAssignableTo(typeof(ContainerType)), 
+                !target.DeclaringType!.IsAssignableTo(typeof(ContainerType)),
                 "Expected type: " + typeof(ContainerType));
 
 

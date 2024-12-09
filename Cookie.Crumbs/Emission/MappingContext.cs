@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Cookie.Emission.ParameterMapping;
-
-namespace Cookie.Emission
+﻿namespace Cookie.Emission
 {
     /// <summary>
     /// Encapsulation context for mapping entry->target parameter signatures
