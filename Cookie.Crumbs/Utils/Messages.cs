@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Cookie.Utils.MessageHelper;
-
-namespace Cookie.Utils
+﻿namespace Cookie.Utils
 {
     public static class Messages
     {

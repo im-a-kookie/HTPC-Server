@@ -20,7 +20,7 @@ namespace Cookie.Addressing
 
             XorMask = new byte[Marshal.SizeOf(typeof(T))];
 
-            if(randomized)
+            if (randomized)
             {
                 this.Randomized = true;
                 Random.Shared.NextBytes(XorMask);

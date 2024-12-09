@@ -1,9 +1,4 @@
 ﻿using Cookie.Addressing;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Cookie.Utils
 {
@@ -77,8 +72,8 @@ namespace Cookie.Utils
             if (string.IsNullOrWhiteSpace(warn)) return text;
 
             // Now do a lookup and replace if possible
-            
-            if(Enabled) return null;
+
+            if (Enabled) return null;
 
             if (text.Length > m + 1)
                 return $"{ToString()}. {text.Substring(m + 1)}".TrimEnd();

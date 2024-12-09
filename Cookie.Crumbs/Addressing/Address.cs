@@ -200,7 +200,7 @@ namespace Cookie.Addressing
                     // Check if data is within the valid range
                     if (d != data[i])
                     {
-                       throw Errors<T>.NoMoreAddresses.Get($"Max argument is 2^bits-1 ({(1 << BitDensity) - 1})");
+                        throw Errors<T>.NoMoreAddresses.Get($"Max argument is 2^bits-1 ({(1 << BitDensity) - 1})");
                     }
                 }
 

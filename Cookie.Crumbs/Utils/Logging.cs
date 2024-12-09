@@ -1,16 +1,15 @@
 ﻿using System.Diagnostics;
-using System.Reflection.PortableExecutable;
 
 namespace Cookie.Utils
-{ 
-public enum LogLevel
 {
-    Debug,
-    Info,
-    Warn,
-    Error,
-    Fatal
-}
+    public enum LogLevel
+    {
+        Debug,
+        Info,
+        Warn,
+        Error,
+        Fatal
+    }
 
     /// <summary>
     /// A logger stream object that can write to arbitrarily many stream writers. 

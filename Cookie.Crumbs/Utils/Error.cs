@@ -1,14 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Threading.Tasks;
-using System.Threading.Tasks.Sources;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Cookie.Utils
 {
@@ -151,7 +142,7 @@ namespace Cookie.Utils
         {
             var e = Get(details, innerException);
             throw e;
-        }       
+        }
 
 
 

@@ -1,12 +1,4 @@
 ﻿using Cookie.Addressing;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace Cookie.Utils
 {
@@ -32,9 +24,9 @@ namespace Cookie.Utils
 
         static MessageHelper()
         {
-            foreach(var arg in Environment.GetCommandLineArgs())
+            foreach (var arg in Environment.GetCommandLineArgs())
             {
-                if(arg.StartsWith("--w:"))
+                if (arg.StartsWith("--w:"))
                 {
                     DisabledByKey.TryAdd(arg.Substring(4), false);
                 }
@@ -52,7 +44,7 @@ namespace Cookie.Utils
             MessageHelper.NameWarning.Add(w.Name.ToLower(), w);
 
             bool flag = true;
-            if(DisabledByKey.TryGetValue(w.Name, out flag) || DisabledByKey.TryGetValue(w.Code, out flag))
+            if (DisabledByKey.TryGetValue(w.Name, out flag) || DisabledByKey.TryGetValue(w.Code, out flag))
             {
                 w.Enabled = flag;
             }
@@ -66,12 +58,12 @@ namespace Cookie.Utils
         /// <param name="enabled"></param>
         public void Flag(string warning, bool enabled)
         {
-            if(NameWarning.TryGetValue(warning, out Message? warningValue))
+            if (NameWarning.TryGetValue(warning, out Message? warningValue))
             {
                 warningValue.Enabled = false;
             }
         }
-       
+
         /// <summary>
         /// Gets the message to apply to this text object
         /// </summary>
@@ -128,9 +120,9 @@ namespace Cookie.Utils
             // Get the first component, if there is one
             warn = text.Split(' ').FirstOrDefault();
             if (string.IsNullOrWhiteSpace(warn)) return text;
-            
+
             // Now do a lookup and replace if possible
-            if(NameWarning.TryGetValue(warn.ToLower(), out var warning))
+            if (NameWarning.TryGetValue(warn.ToLower(), out var warning))
             {
                 if (!warning.Enabled) return null;
 
@@ -144,7 +136,7 @@ namespace Cookie.Utils
         }
 
 
-        
+
 
 
     }
