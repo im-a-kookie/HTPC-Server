@@ -106,7 +106,7 @@ namespace Cookie.TCP
         {
             var canceller = new CancellationTokenSource();
             var listener = new ConnectionListener(this, canceller.Token);
-            LiveListeners.Add((listener, canceller)); 
+            LiveListeners.Add((listener, canceller));
         }
 
         /// <summary>

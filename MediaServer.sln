@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35506.116 d17.12
+VisualStudioVersion = 17.12.35506.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaServer", "MediaServer\MediaServer.csproj", "{3D3C8E36-FF82-4D42-AB40-61D3835E59B7}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cookie.Crumbs", "Cookie.Crumbs\Cookie.Crumbs.csproj", "{FC11CFF2-DE2A-4B6F-91EF-0CBB7954E5F3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cookie.Connections", "Cookie.Connections\Cookie.Connections.csproj", "{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cookie.MediaLibrary", "Cookie.MediaLibrary\Cookie.MediaLibrary.csproj", "{13A9C8F4-836F-4BF2-AB84-F4FD6C454465}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF6FED79-976B-4B94-AA74-F20B81BF5E0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13A9C8F4-836F-4BF2-AB84-F4FD6C454465}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13A9C8F4-836F-4BF2-AB84-F4FD6C454465}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13A9C8F4-836F-4BF2-AB84-F4FD6C454465}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13A9C8F4-836F-4BF2-AB84-F4FD6C454465}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

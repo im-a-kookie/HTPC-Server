@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Cookie.Crumbs\Cookie.Crumbs.csproj" />
+    <ProjectReference Include="..\Cookie.MediaLibrary\Cookie.MediaLibrary.csproj" />
   </ItemGroup>
 
 </Project>

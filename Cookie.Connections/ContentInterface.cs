@@ -3,7 +3,6 @@ using Cookie.TCP;
 using Cookie.UDP;
 using Cookie.Utils;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -48,7 +47,7 @@ namespace Cookie
         /// <summary>
         /// A mapping of all known client ports
         /// </summary>
-        ConcurrentDictionary<int, bool> KnownPorts = new();
+        private ConcurrentDictionary<int, bool> KnownPorts = new();
 
         /// <summary>
         /// Internal flag denoting whether connection is established with backend
@@ -137,10 +136,10 @@ namespace Cookie
                 List<byte[]> sendData = new List<byte[]>();
 
                 sb.Append("update:");
-                for(int i = 0; i < series.Count; ++i)
+                for (int i = 0; i < series.Count; ++i)
                 {
                     string str = series[i].id + ';';
-                    if(sb.Length + str.Length > 450)
+                    if (sb.Length + str.Length > 450)
                     {
                         sendData.Add(Encoding.ASCII.GetBytes(sb.ToString()));
                         sb.Clear();

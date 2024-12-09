@@ -1,6 +1,5 @@
 ﻿using Cookie.Addressing;
 using Cookie.Utils;
-using System.Linq.Expressions;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -184,7 +183,7 @@ namespace Cookie.TCP
                 connection.CallOnRequest(request, response);
 
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Logger.Error($"TCP Client Listener threw: {e}");
             }
@@ -196,7 +195,7 @@ namespace Cookie.TCP
 
         public override void Exit()
         {
-            
+
         }
     }
 }

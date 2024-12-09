@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Cookie.Connections\Cookie.Connections.csproj" />
     <ProjectReference Include="..\Cookie.Crumbs\Cookie.Crumbs.csproj" />
+    <ProjectReference Include="..\Cookie.MediaLibrary\Cookie.MediaLibrary.csproj" />
   </ItemGroup>
 
   <ItemGroup>

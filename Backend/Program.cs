@@ -1,9 +1,7 @@
-﻿using Cookie;
-using Cookie.ContentLibrary;
-using Cookie.Crumbs.Utils;
+﻿using Cookie.ContentLibrary;
 using Cookie.Serializing;
-using Cookie.TCP;
-using Cookie.Utils;
+using System.Diagnostics;
+using System.Text;
 
 namespace Backend.ServerLibrary
 {
@@ -15,32 +13,50 @@ namespace Backend.ServerLibrary
         public static void Main(string[] args)
         {
 
-            // Register the serializer reconstructors for the local builder
-            localSerializer.RegisterBuilder("File", () => new MediaFile());
-            localSerializer.RegisterBuilder("Season", () => new Season());
-            localSerializer.RegisterBuilder("Title", () => new Title("_undefined"));
 
-            // The remote rebuilder is essentially the same
-            // But lets us use different classes, provided they offer the same properties
-            remoteSerializer.RegisterBuilder("File", () => new MediaFile());
-            remoteSerializer.RegisterBuilder("Season", () => new Season());
-            remoteSerializer.RegisterBuilder("Title", () => new Title("_undefined"));
+            Dictionary<string, object> test = new();
 
-            var searcher = new Searcher("E:/");
+            test.Add("banana", new Dictionary<string, string>());
+            ((Dictionary<string, string>)test["banana"]).Add("0", "apple");
+            ((Dictionary<string, string>)test["banana"]).Add("1", "orange");
+            ((Dictionary<string, string>)test["banana"]).Add("2", "pear");
+            test.Add("peanut", "butter");
+
+            Dictionary<string, object> inner0 = new();
+            inner0.Add("key0", "cake");
+            inner0.Add("key1", "cookie");
+            inner0.Add("key2", "pie");
+
+            Dictionary<string, object> inner1 = new();
+            inner1.Add("key0", "jelly");
+            inner1.Add("key1", "custard");
+            inner1.Add("key2", inner0);
+
+            test.Add("deserts", inner1);
+            test.Add("chocolate", new List<string>() { "milk", "cookies", "ice-cream" });
+
+
+            var result = new NestedSerial().Condense(test, 0);
+
+            new NestedSerial().Process($"{{{result}}}");
+
+
+
+            var n = new Title("banana");
+            var sb = new StringBuilder();
+
+
+            var searcher = new Searcher("S:/");
             var lib = searcher.Enumerate(4);
 
-
-
-            foreach (var title in lib.FoundSeries)
+            Directory.CreateDirectory("Testing");
+            Stopwatch s = Stopwatch.StartNew();
+            foreach (var item in lib.FoundSeries)
             {
-                var s = localSerializer.GetCompounded(title.Value);
-                var d = localSerializer.CompoundToString(s);
-
-                var _d = localSerializer.Rebuild(d);
-
-                Console.WriteLine(d);
+                var str = item.ToString();
+                File.WriteAllText($"Testing/{item.Value.Name}.txt", str);
             }
-
+            Console.WriteLine("Time: " + s.Elapsed.TotalMilliseconds);
 
 
             Console.WriteLine("Done!");

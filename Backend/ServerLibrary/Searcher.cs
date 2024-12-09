@@ -313,11 +313,11 @@ namespace Backend.ServerLibrary
                 filesOwned.AddRange(kv.Value.EpisodeList.Values);
 
                 // now let's seasonally sort them
-                ConcurrentDictionary<string, Season> seasonSorting = [];
+                ConcurrentDictionary<int, Season> seasonSorting = [];
                 foreach (var f in filesOwned)
                 {
-                    Season list = seasonSorting.GetOrAdd(f.SNo.ToString(), new Season());
-                    list.Episodes.Add(f);
+                    Season list = seasonSorting.GetOrAdd(f.SNo, new Season());
+                    list.Eps.Add(f);
                 }
 
                 // Now, we need to sort this list based on Episode - Filename
@@ -330,7 +330,7 @@ namespace Backend.ServerLibrary
 
                     // First let's map the sorting keys to the files
                     Dictionary<string, MediaFile> remap = [];
-                    foreach (var f in season.Value.Episodes)
+                    foreach (var f in season.Value.Eps)
                     {
                         // Sort it in episodic order, then path order
                         int n = f.EpNo < 0 ? 999 : f.EpNo;
@@ -350,7 +350,7 @@ namespace Backend.ServerLibrary
                     }
 
                     // Lastly, sort the actual episode list by episode order
-                    season.Value.Episodes.Sort((x, y) => x.EpNo.CompareTo(y.EpNo));
+                    season.Value.Eps.Sort((x, y) => x.EpNo.CompareTo(y.EpNo));
                 }
 
                 //Now push the sorted season/episode list into the SeasonEpisode format
@@ -427,7 +427,7 @@ namespace Backend.ServerLibrary
                     foreach (var season in show.Value.Eps)
                     {
                         Console.WriteLine($"\tSeason {season.Key}");
-                        foreach (var e in season.Value.Episodes)
+                        foreach (var e in season.Value.Eps)
                         {
                             Console.WriteLine($"\t  - S{e.SNo}E{e.EpNo}: {e.Path}");
                         }
