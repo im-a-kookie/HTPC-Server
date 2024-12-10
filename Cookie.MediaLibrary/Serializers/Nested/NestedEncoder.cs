@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System.Reflection.Metadata.Ecma335;
+using System.Runtime.Serialization;
 using System.Text;
 
 namespace Cookie.Serializers.Nested
@@ -8,6 +9,8 @@ namespace Cookie.Serializers.Nested
     /// </summary>
     public class NestedEncoder
     {
+
+        public static bool Indent = true;
 
         /// <summary>
         /// Serializes an object into a custom condensed format based on its type.
