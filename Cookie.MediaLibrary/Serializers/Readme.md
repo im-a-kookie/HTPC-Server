@@ -24,15 +24,15 @@ mHealthy Cookies*
 	2~Fruitcake Cookie;
 };
 Peanut*sSnickerdoodle;
-Indulgents*
+Indulgent*
 {m
 	Level 1*Choc-Chip;
 	Level 2*sDouble Choc;
 	Others*
 	{m
-		White*Chocolate;
-		Alternative*Caramilk;
-		Butterscotch*Mmmm;
+		White*sChocolate;
+		Alternative*sCaramilk;
+		Butterscotch*sMmmm;
 	};
 };
 Serving Options*
