@@ -1,10 +1,8 @@
-﻿using Cookie.Crumbs.Utils;
-using Cookie.Utils;
+﻿using Cookie.Logging;
 using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Text;
-using static Cookie.Utils.Error;
-
+using static Cookie.Logging.Error;
 namespace Cookie.Addressing
 {
     /// <summary>
