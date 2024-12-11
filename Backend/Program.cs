@@ -1,7 +1,10 @@
 ﻿using Cookie.ContentLibrary;
 using Cookie.Serializers;
+using Cookie.Serializers.Bytewise;
 using Cookie.Serializers.Nested;
 using Cookie.Serializing;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 
@@ -9,8 +12,8 @@ namespace Backend.ServerLibrary
 {
     public class Program
     {
-        public static SerializationEngine localSerializer = new();
-        public static SerializationEngine remoteSerializer = new();
+        public static JsonSerialization localSerializer = new();
+        public static JsonSerialization remoteSerializer = new();
 
         public static void Main(string[] args)
         {
@@ -38,7 +41,7 @@ namespace Backend.ServerLibrary
                 { "key2", inner0 }
             };
 
-            string b128 = Encoding.UTF8.GetBytes("ahskjfhskjdss").ToBase128();
+            string b128 = Encoding.UTF8.GetBytes("Cookies are amazing").ToBase128();
             Console.WriteLine(b128);
             Console.WriteLine(Encoding.UTF8.GetString(b128.ToBytesBase128()));
 
@@ -48,6 +51,14 @@ namespace Backend.ServerLibrary
 
             var result = NestedEncoder.Condense(test, 0);
             NestedDecoder.Process($"{{{result}}}");
+
+            using MemoryStream ms = new();
+            Byter.ToBytes(ms, test);
+            var bytes = ms.ToArray();
+            Console.WriteLine(Encoding.UTF8.GetString((byte[])bytes));
+            using MemoryStream os = new(bytes);
+            var dict = Byter.FromBytes(os);
+
 
             var n = new Title("banana");
             var sb = new StringBuilder();
