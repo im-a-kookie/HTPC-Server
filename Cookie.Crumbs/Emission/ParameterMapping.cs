@@ -1,12 +1,11 @@
-﻿namespace Cookie.Emission
+﻿#if !BROWSER
+namespace Cookie.Emission
 {
     /// <summary>
     /// Helper class that provides useful methods for investigating the parameters of methods.
     /// </summary>
-    public partial class ParameterMapping
+    internal partial class ParameterMapping
     {
-
-
 
         /// <summary>
         /// Checks type assignability of the given types.
@@ -83,7 +82,7 @@
         /// <param name="target"></param>
         /// <param name="allowTargetHigherSpecificity"></param>
         /// <returns></returns>
-        public static List<Mapping> GenerateSignatureMapping(Type[] entry, Type[] target, bool allowTargetHigherSpecificity = true)
+        internal static List<Mapping> GenerateSignatureMapping(Type[] entry, Type[] target, bool allowTargetHigherSpecificity = true)
         {
             MappingContext context = new(entry, target);
             context.ReversibleAssignability = allowTargetHigherSpecificity;
@@ -195,3 +194,4 @@
 
     }
 }
+#endif

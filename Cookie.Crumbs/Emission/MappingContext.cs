@@ -1,41 +1,42 @@
-﻿namespace Cookie.Emission
+﻿#if !BROWSER
+namespace Cookie.Emission
 {
     /// <summary>
     /// Encapsulation context for mapping entry->target parameter signatures
     /// </summary>
-    public class MappingContext
+    internal class MappingContext
     {
         /// <summary>
         /// The entry parameters provided to the mapping algorithm
         /// </summary>
-        public Type[] EntryParameters { get; set; }
+        internal Type[] EntryParameters { get; set; }
 
         /// <summary>
         /// The target parameters expected to be mapped from the entry
         /// </summary>
-        public Type[] TargetParameters { get; set; }
+        internal Type[] TargetParameters { get; set; }
 
         /// <summary>
         /// Dictionary mapping <see cref="TargetParameters"/> index to <see cref="EntryParameters"/> index (or -1 for null/default).
         /// </summary>
-        public Dictionary<int, int> Mappings { get; set; }
+        internal Dictionary<int, int> Mappings { get; set; }
 
         /// <summary>
         /// A flag array indicating the consumption state of entry parameters
         /// </summary>
-        public bool[] SolvedEntries { get; set; }
+        internal bool[] SolvedEntries { get; set; }
 
         /// <summary>
         /// A flag array indicating the consumption state of target parameters
         /// </summary>
-        public bool[] SolvedTargets { get; set; }
+        internal bool[] SolvedTargets { get; set; }
 
         /// <summary>
         /// Whether reversible assignability is permitted from Target->Entry.
         /// 
         /// <para>This allows the target to be more specific about typing than the entry delegate.</para>
         /// </summary>
-        public bool ReversibleAssignability { get; set; } = true;
+        internal bool ReversibleAssignability { get; set; } = true;
 
 
         /// <summary>
@@ -90,7 +91,7 @@
         /// Computes this context into a list of mappings, ordered by output parameter index.
         /// </summary>
         /// <returns>A sorted result of mapping structs</returns>
-        public List<Mapping> ComputeSortedMapping(bool nullifyEmptyOutputs = true)
+        internal List<Mapping> ComputeSortedMapping(bool nullifyEmptyOutputs = true)
         {
             for (int o = 0; o < TargetParameters.Length; ++o)
             {
@@ -118,3 +119,4 @@
     }
 
 }
+#endif

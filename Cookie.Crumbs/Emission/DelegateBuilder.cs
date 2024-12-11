@@ -2,12 +2,13 @@
 using System.Reflection;
 using System.Reflection.Emit;
 
+#if !BROWSER
 namespace Cookie.Emission
 {
-    public class DelegateBuilder
+    internal class DelegateBuilder
     {
 
-        public static void DWrite(string s)
+        internal static void DWrite(string s)
         {
             Debug.WriteLine(s);
         }
@@ -17,7 +18,7 @@ namespace Cookie.Emission
         /// </summary>
         /// <param name="target"></param>
         /// <returns></returns>
-        public static DelegateTarget CreateCallbackDelegate<ContainerType, DelegateTarget>(
+        internal static DelegateTarget CreateCallbackDelegate<ContainerType, DelegateTarget>(
         MethodInfo target,
             out BuilderContext<ContainerType, DelegateTarget>? context) where DelegateTarget : Delegate where ContainerType : class
         {
@@ -309,3 +310,4 @@ namespace Cookie.Emission
 
     }
 }
+#endif

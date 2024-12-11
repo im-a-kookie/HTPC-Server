@@ -1,15 +1,17 @@
-﻿namespace Cookie.Emission
+﻿#if !BROWSER
+namespace Cookie.Emission
 {
     /// <summary>
     /// Maps parameters from entry->target for delegate construction
     /// </summary>
-    public struct Mapping
+    internal struct Mapping
     {
-        public readonly int src;
-        public readonly int dst;
-        public Mapping(int source, int destination)
+        internal readonly int src;
+        internal readonly int dst;
+        internal Mapping(int source, int destination)
         {
             this.src = source; this.dst = destination;
         }
     }
 }
+#endif

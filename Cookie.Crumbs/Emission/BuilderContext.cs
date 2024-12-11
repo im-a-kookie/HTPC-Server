@@ -1,17 +1,20 @@
 ﻿using Cookie.Utils;
+using Cookie.Logging;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 
+
+#if !BROWSER
 namespace Cookie.Emission
 {
 
-    public class BuilderContext<ContainerType, TargetDelegate> where TargetDelegate : Delegate where ContainerType : class
+    internal class BuilderContext<ContainerType, TargetDelegate> where TargetDelegate : Delegate where ContainerType : class
     {
         /// <summary>
         /// Whether the target method is static
         /// </summary>
-        public bool IsStatic { get; private set; }
+        internal bool IsStatic { get; private set; }
 
         ///// <summary>
         ///// The calling object, or null (expects null if IsStatic)
@@ -21,34 +24,34 @@ namespace Cookie.Emission
         /// <summary>
         /// The return type of the entry delegate
         /// </summary>
-        public Type EntryReturn { get; private set; }
+        internal Type EntryReturn { get; private set; }
 
         /// <summary>
         /// The return type of the target method
         /// </summary>
-        public Type TargetReturn { get; private set; }
+        internal Type TargetReturn { get; private set; }
 
         /// <summary>
         /// The parameter types of the entry delegate
         /// </summary>
-        public Type[] EntryParams { get; private set; }
+        internal Type[] EntryParams { get; private set; }
 
         /// <summary>
         /// The parameter types of the target method
         /// </summary>
-        public Type[] TargetParams { get; private set; }
+        internal Type[] TargetParams { get; private set; }
 
         /// <summary>
         /// The parameter mappings between entry and target parameters
         /// </summary>
-        public List<Mapping> Mappings { get; private set; }
+        internal List<Mapping> Mappings { get; private set; }
 
         /// <summary>
         /// The target being invoked
         /// </summary>
-        public MethodInfo Target;
+        internal MethodInfo Target;
 
-        public BuilderContext(MethodInfo target)
+        internal BuilderContext(MethodInfo target)
         {
 
             this.Target = target;
@@ -88,7 +91,7 @@ namespace Cookie.Emission
         /// Gets a qualified target name for error/debugging reasons
         /// </summary>
         /// <returns></returns>
-        public string GetQualifiedTargetName()
+        internal string GetQualifiedTargetName()
         {
             StringBuilder sb = new StringBuilder(100);
             sb.Append($"{Target.DeclaringType?.Name ?? "<?>"}.{Target.Name}");
@@ -136,7 +139,7 @@ namespace Cookie.Emission
         /// </summary>
         /// <returns>An empty <see cref="DynamicMethod"/> with parameters configured according to this context.</returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public DynamicMethod CreateDynamicMethod()
+        internal DynamicMethod CreateDynamicMethod()
         {
             try
             {
@@ -159,3 +162,4 @@ namespace Cookie.Emission
 
     }
 }
+#endif
