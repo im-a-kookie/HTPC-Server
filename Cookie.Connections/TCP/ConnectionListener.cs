@@ -1,9 +1,12 @@
 ﻿using Cookie.Addressing;
+using Cookie.Logging;
 using Cookie.Utils;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 
+
+#if !BROWSER
 namespace Cookie.TCP
 {
     internal class ConnectionListener : Addressable
@@ -12,28 +15,28 @@ namespace Cookie.TCP
         /// <summary>
         /// A counter estimating the number of live requests being processed
         /// </summary>
-        public bool Working = false;
+        internal int Working = 0;
         /// <summary>
         /// A counter indicating the number of requests (x1e3). 
         /// <para>
         /// Note: The underlying connection absorbs this value regularly for metrics.
         /// </para>
         /// </summary>
-        public int RequestRateCounter = 0;
+        internal int RequestRateCounter = 0;
 
         /// <summary>
         /// A counter for the number of in-flight calls
         /// </summary>
-        public int InFlightCalls = 0;
+        internal int InFlightCalls = 0;
 
         /// <summary>
         /// A boolean flag indicating whether this listener is still alive
         /// </summary>
-        public bool Alive = true;
+        internal bool Alive = true;
         /// <summary>
         /// The cancellation token for this listener
         /// </summary>
-        public CancellationToken Token;
+        internal CancellationToken Token;
 
         /// <summary>
         /// The underlying connection for this listener
@@ -47,7 +50,7 @@ namespace Cookie.TCP
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="token"></param>
-        public ConnectionListener(ConnectionProvider connection, CancellationToken token)
+        internal ConnectionListener(ConnectionProvider connection, CancellationToken token)
         {
             this.Token = token;
             this.connection = connection;
@@ -69,7 +72,7 @@ namespace Cookie.TCP
         /// <summary>
         /// The main listener entry point for this listener
         /// </summary>
-        public async void Listen()
+        internal async void Listen()
         {
             Interlocked.Increment(ref connection.IdleWorkers);
             List<Task> active = new();
@@ -89,7 +92,7 @@ namespace Cookie.TCP
                     // Await a response
                     var client = connection.listener.AcceptTcpClientAsync(Token);
                     await client;
-                    Interlocked.CompareExchange(ref Working, false, true);
+                    Interlocked.CompareExchange(ref Working, 0, 1);
                     // We are now counted as a live thread
 
                     Interlocked.Increment(ref InFlightCalls);
@@ -122,7 +125,7 @@ namespace Cookie.TCP
 
 
                     // This thread is no longer live
-                    Interlocked.CompareExchange(ref Working, true, false);
+                    Interlocked.CompareExchange(ref Working, 1, 0);
                     Interlocked.Increment(ref connection.IdleWorkers);
                 }
             }
@@ -142,7 +145,7 @@ namespace Cookie.TCP
         /// </summary>
         /// <param name="client"></param>
         /// <returns></returns>
-        public async Task<Stream> GetClientStream(TcpClient client)
+        internal async Task<Stream> GetClientStream(TcpClient client)
         {
             if (connection.SSL != null)
             {
@@ -169,7 +172,7 @@ namespace Cookie.TCP
         /// Processes the input client request.
         /// </summary>
         /// <param name="client"></param>
-        public async Task Process(Stream stream)
+        internal async Task Process(Stream stream)
         {
 
             try
@@ -199,3 +202,4 @@ namespace Cookie.TCP
         }
     }
 }
+#endif

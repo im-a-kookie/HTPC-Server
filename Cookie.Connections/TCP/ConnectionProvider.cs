@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
+#if !BROWSER
 namespace Cookie.TCP
 {
     public class ConnectionProvider : Addressable, IDisposable
@@ -110,7 +111,7 @@ namespace Cookie.TCP
         }
 
         /// <summary>
-        /// Internal method for maintaining the pool
+        /// public method for maintaining the pool
         /// </summary>
         public async void Maintain()
         {
@@ -152,7 +153,7 @@ namespace Cookie.TCP
                             for (int i = 0; i < LiveListeners.Count; i++)
                             {
                                 // Find and bonk the first idle thread
-                                if (!LiveListeners[i].listener.Working)
+                                if (LiveListeners[i].listener.Working == 0)
                                 {
                                     var l = LiveListeners[i];
                                     LiveListeners.RemoveAt(i);
@@ -256,3 +257,4 @@ namespace Cookie.TCP
         }
     }
 }
+#endif

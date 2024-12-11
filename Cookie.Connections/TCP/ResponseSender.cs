@@ -1,4 +1,5 @@
-﻿using Cookie.Crumbs.Utils;
+﻿
+using Cookie.Logging;
 using Cookie.Utils;
 using System.Net;
 using System.Text;
@@ -182,6 +183,9 @@ namespace Cookie.TCP
         /// <returns></returns>
         public async Task<long> Deliver(string file)
         {
+            #if BROWSER
+                throw new InvalidOperationException("Cannot provide file from browser environment!");
+            #endif
             string mime = MimeHelper.GetFromFile(file)!;
             return await Deliver(File.Open(file, FileMode.Open), MimeHelper.GetFromFile(file)!);
         }
