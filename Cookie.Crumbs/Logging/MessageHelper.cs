@@ -1,18 +1,19 @@
 ﻿using Cookie.Addressing;
+using Cookie.Cryptography;
 
-namespace Cookie.Utils
+namespace Cookie.Logging
 {
     public class MessageHelper
     {
         /// <summary>
         /// A unique address provider for the warning instance
         /// </summary>
-        internal static AddressProvider<short> AddressProvider = new AddressProvider<short>(false);
+        //internal static AddressProvider<short> AddressProvider = new AddressProvider<short>(false);
 
         /// <summary>
         /// A mapping of addresses to the underlying warnings
         /// </summary>
-        internal static Dictionary<Address<short>, Message> AddressWarning = [];
+        internal static Dictionary<Address<long>, Message> AddressWarning = [];
 
         /// <summary>
         /// A mapping of string codes/names to warning objects
@@ -20,6 +21,13 @@ namespace Cookie.Utils
         internal static Dictionary<string, Message> NameWarning = [];
 
         internal static Dictionary<string, bool> DisabledByKey = [];
+
+
+        internal static Address<long> ProvideAddress(Message m)
+        {
+            string var = m.Name + m.Body;
+            return new Address<long>(CryptoHelper.GetStringHash(var));
+        }
 
 
         static MessageHelper()

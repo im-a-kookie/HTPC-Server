@@ -1,7 +1,10 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using Cookie.Addressing;
+using Cookie.Cryptography;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace Cookie.Utils
+namespace Cookie.Logging
 {
     public class Error
     {
@@ -9,14 +12,15 @@ namespace Cookie.Utils
 
         public delegate bool Assertion();
 
+        public Address<long> Id;
 
         public Message InnerMessage;
+
         public ExceptionBuilder Generator;
 
         public string? MessagePrepend = null;
 
         public Exception Exception => Get(null, null);
-
 
         public Error(Message message, ExceptionBuilder inner, string? prepend = null)
         {
@@ -119,9 +123,11 @@ namespace Cookie.Utils
         /// <param name="innerException"></param>
         public Exception Get(string? details = null, Exception? innerException = null)
         {
+            Logger.Fatal(this, details ?? String.Empty);
+
             // Generate the error message
             StringBuilder sb = new();
-            sb.Append(InnerMessage.ToString());
+            sb.Append("Error: " + InnerMessage.ToString());
             if (details == null) sb.Append('.');
             else
             {
@@ -139,7 +145,8 @@ namespace Cookie.Utils
         /// <param name="details"></param>
         /// <param name="innerException"></param>
         public void Throw(string? details = null, Exception? innerException = null)
-        {
+        {            
+            Logger.Fatal(this, details ?? String.Empty);
             var e = Get(details, innerException);
             throw e;
         }

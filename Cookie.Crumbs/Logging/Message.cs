@@ -1,6 +1,6 @@
 ﻿using Cookie.Addressing;
 
-namespace Cookie.Utils
+namespace Cookie.Logging
 {
     /// <summary>
     /// A simple warning binding
@@ -14,7 +14,7 @@ namespace Cookie.Utils
         /// <summary>
         /// The identifier for this warning
         /// </summary>
-        public Address<short> Identifier { get; private set; }
+        public Address<long> Identifier { get; private set; }
         /// <summary>
         /// The name of this warning
         /// </summary>
@@ -36,15 +36,20 @@ namespace Cookie.Utils
         /// <param name="Message"></param>
         public Message(string Name, string Message)
         {
-            Identifier = MessageHelper.AddressProvider.Get();
             this.Name = Name;
             this.Body = Message;
+            Identifier = MessageHelper.ProvideAddress(this);
             MessageHelper.Register(this);
         }
 
         public void Warn(string? message = null)
         {
             Logger.Warn(this, message);
+        }
+
+        public void Debug(string? message = null)
+        {
+            Logger.Debug(this, message);
         }
 
         /// <summary>

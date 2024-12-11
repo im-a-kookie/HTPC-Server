@@ -1,4 +1,4 @@
-﻿namespace Cookie.Utils
+﻿namespace Cookie.Logging
 {
     public static class Messages
     {

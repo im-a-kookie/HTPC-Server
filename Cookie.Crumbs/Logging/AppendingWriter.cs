@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Cookie.Utils
+namespace Cookie.Logging
 {
     public class AppendingWriter : TextWriter
     {

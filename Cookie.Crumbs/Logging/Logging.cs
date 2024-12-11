@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Cookie.Utils
+namespace Cookie.Logging
 {
     public enum LogLevel
     {
@@ -195,10 +195,25 @@ namespace Cookie.Utils
             Default.WriteLog(LogLevel.Fatal, message);
         }
 
+        public static void Error(Error error, string message)
+        {
+            Default.WriteLog(LogLevel.Error, $"{error.InnerMessage.Code}: {message}".TrimEnd());
+        }
+
+        public static void Fatal(Error error, string message)
+        {
+            Default.WriteLog(LogLevel.Fatal, $"{error.InnerMessage.Code}: {message}".TrimEnd());
+        }
+
         public static void Warn(Message warning, string? message = null)
         {
 
             Default.WriteLog(LogLevel.Warn, $"{warning.Code}: {message}".TrimEnd());
+        }
+
+        public static void Debug(Message debugWarning, string? message = null)
+        {
+            Default.WriteLog(LogLevel.Debug, $"{debugWarning.Code}: {message}".TrimEnd());
         }
 
         public static void WriteBlock(string header, string message, LogLevel? level = null)

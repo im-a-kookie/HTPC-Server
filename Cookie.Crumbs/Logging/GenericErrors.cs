@@ -1,7 +1,8 @@
-﻿using Cookie.Utils;
+﻿using Cookie.Logging;
+using Cookie.Utils;
 using Cookie.Utils.Exceptions;
 
-namespace Cookie.Crumbs.Utils
+namespace Cookie.Logging
 {
     public static class GenericErrors
     {
