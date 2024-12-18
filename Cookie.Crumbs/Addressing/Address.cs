@@ -151,12 +151,15 @@ namespace Cookie.Addressing
         /// <summary>
         /// Gets this address as a string value
         /// </summary>
-        public string Text => Encoding.ASCII.GetString(ToByteArraySafe(_value));
+        public string AsRawHex => Convert.ToHexString(Data).PadLeft(Size, '0');
+
+        public string UTF8 => Encoding.UTF8.GetString(Data);
 
         /// <summary>
         /// Gets this address as a byte array whose size will match <see cref="Size"/>
         /// </summary>
         public byte[] Data => ToByteArraySafe(_value);
+
 
         /// <summary>
         /// Creates a new address with the given value of <typeparamref name="T"/>. Unless <paramref name="value"/> is
@@ -324,14 +327,13 @@ namespace Cookie.Addressing
 
         public override string ToString()
         {
-            return Text;
+            return "0x" + UTF8;
         }
 
         public override int GetHashCode()
         {
             return _value.GetHashCode();
         }
-
 
         public override bool Equals(object? obj)
         {
