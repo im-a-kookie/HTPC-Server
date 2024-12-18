@@ -1,9 +1,5 @@
 ﻿using Cookie.Serializers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Tests.MediaLibrary.Serializing
 {
@@ -12,11 +8,19 @@ namespace Tests.MediaLibrary.Serializing
     public class Base128Tests
     {
 
+        public static readonly string TestString = @"abc def ghi jkl mno pqrs tuv wxyz ABC DEF GHI JKL MNO PQRS TUV WXYZ !""
+§ $%& /() =?* '<> #|; ²³~ @`´ ©«» ¤¼× {} abc def ghi jkl mno pqrs tuv wxyz ABC DEF GHI JKL MNO PQRS TUV WXYZ !""§ $%& /() =?*
+'<> #|; ²³~ @`´ ©«» ¤¼× {} abc def ghi jkl mno pqrs tuv wxyz ABC DEF GHI JKL MNO PQRS TUV WXYZ !""§ $%& /() =?* '<> #|; ²³~ @`
+´ ©«» ¤¼× {} abc def ghi jkl mno pqrs tuv wxyz ABC DEF GHI JKL MNO PQRS TUV WXYZ !""§ $%& /() =?* '<> #|; ²³~ @`´ ©«» ¤¼× {} 
+abc def ghi jkl mno pqrs tuv wxyz ABC DEF GHI JKL MNO PQRS TUV WXYZ !""§ $%& /() =?* '<> #|; ²³~ @`´ ©«» ¤¼× {} abc def ghi jkl
+mno pqrs tuv wxyz ABC DEF GHI JKL MNO PQRS TUV WXYZ !""§ $%& /() =?* '<> #|; ²³~ @`´ ©«» ¤¼× {} abc def ghi jkl mno pqrs tuv
+wxyz ABC DEF GHI JKL MNO PQRS TUV WXYZ !""§ $%& /() =?* '<> #|; ²³~ @`´ ©«» ¤¼× {}abc def ghi jkl mno pqrs tuv wxyz ABC DEF GHI";
+
         [TestMethod]
         public void Base128ConvertsRoundTrip()
         {
             // Arrange
-            string input = "COOKIES!!!";
+            string input = TestString;
             string base128 = Base128.ToBase128(Encoding.UTF8.GetBytes(input));
             string result = Encoding.UTF8.GetString(Base128.FromBase128(base128));
 
@@ -28,7 +32,7 @@ namespace Tests.MediaLibrary.Serializing
         public void ExtensionMethods()
         {
             // Arrange
-            string input = "COOKIES!!!";
+            string input = TestString;
             string base128 = Encoding.UTF8.GetBytes(input).ToBase128();
             string result = Encoding.UTF8.GetString(base128.ToBytesBase128());
 
