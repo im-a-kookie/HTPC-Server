@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
+﻿using System.Text;
 
 namespace Cookie.Serializers
 {
@@ -14,7 +8,7 @@ namespace Cookie.Serializers
         /// A collection of potentially valid characters. Some of them aren't 0-255 range in ASCII
         /// but removing them is annoying and there are enough that it works just fine
         /// </summary>
-        public static readonly string ValidCharacters = 
+        public static readonly string ValidCharacters =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef" +
             "ghijklmnopqrstuvwxyz€ƒ†‡‰ŠŒŽ•šœž" +
             "Ÿ¢£¤¥§©µ¶¼½¾¿®°ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐ" +
@@ -25,6 +19,8 @@ namespace Cookie.Serializers
         ///  Internal character array for converting a 7 bit value (0-127) into a readable(?) character
         /// </summary>
         private static readonly char[] ValueToChar;
+
+        private static readonly bool[] ValidChar;
 
         /// <summary>
         /// Internal array mapping the valid base128 characters to 7 bit (0-128) binary values
@@ -37,15 +33,17 @@ namespace Cookie.Serializers
         static Base128()
         {
             ValueToChar = new char[128];
+            ValidChar = new bool[256];
             var valid = ValidCharacters.ToCharArray().Where(x => x <= 255).ToHashSet().ToArray();
             // Shuffle it for funs
             new LCG(238525).Shuffle(valid);
 
             if (valid.Length < 128) throw new Exception("BONK!");
             // and populate using the first 128 characters
-            for(int i = 0; i < 128; i++)
+            for (int i = 0; i < 128; i++)
             {
                 ValueToChar[i] = valid[i];
+                ValidChar[valid[i]] = true;
                 CharToValue[(byte)ValueToChar[i]] = (byte)i;
             }
         }
@@ -78,9 +76,9 @@ namespace Cookie.Serializers
 
                 int value = (int)c; // Get the 7-bit value from the character
                 value = CharToValue[value & 0xFF];
-                if (value == 0)
+                if (!ValidChar[c])
                     throw new FormatException($"Invalid Base128 Character {c}");
-                
+
 
                 string sc = value.ToString("B8");
 
