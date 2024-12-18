@@ -1,4 +1,6 @@
 ﻿using Cookie.Addressing;
+using Cookie.Connections;
+using Cookie.Logging;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -10,7 +12,7 @@ namespace Cookie.TCP
     public class ConnectionProvider : Addressable, IDisposable
     {
 
-        public delegate void RequestProcessor(RequestReader request, ResponseSender response);
+        public delegate Task RequestProcessor(Request request, Response response);
 
         /// <summary>
         /// An event called when this connection gets an HTTP request. Note that
@@ -63,6 +65,17 @@ namespace Cookie.TCP
         /// </summary>
         public X509Certificate2? SSL { get; private set; }
 
+
+        /// <summary>
+        /// A task completion source indicating closure of this listener
+        /// </summary>
+        private TaskCompletionSource ClosureSource = new();
+
+        /// <summary>
+        /// A boolean indicating that we have quit
+        /// </summary>
+        public Task ClosureAwaitable;
+
         /// <summary>
         /// Create a new connection provider on the given port
         /// </summary>
@@ -82,6 +95,10 @@ namespace Cookie.TCP
                     l.token.Cancel();
                 }
             });
+
+            ClosureAwaitable = ClosureSource.Task;
+
+
 
             // Create the TCP connection
 
@@ -105,9 +122,11 @@ namespace Cookie.TCP
         /// </summary>
         public void StartListener()
         {
+            Interlocked.Increment(ref IdleWorkers);
             var canceller = new CancellationTokenSource();
             var listener = new ConnectionListener(this, canceller.Token);
             LiveListeners.Add((listener, canceller));
+            Logger.Info($"Started listener {listener.Address}");
         }
 
         /// <summary>
@@ -132,12 +151,12 @@ namespace Cookie.TCP
                     }
 
                     // Calculate the adjusted rate
-                    totalRate /= (s.Elapsed.TotalMilliseconds);
+                    totalRate /= 1000;
                     movingAverage = (movingAverage * 5 + totalRate) / (5 + s.Elapsed.TotalSeconds);
                     s.Restart(); // Reset counter
 
                     // If there are stressed workers, then we need a new listener
-                    if (LiveListeners.Count == 0 || (IdleWorkers <= 1 && LiveListeners.Count < MaxThreads))
+                    if (LiveListeners.Count == 0 || (IdleWorkers < 1 && LiveListeners.Count < MaxThreads))
                     {
                         StartListener();
                         // arbitrarily increase the moving average,
@@ -148,16 +167,16 @@ namespace Cookie.TCP
                     else
                     {
                         listenerSignal.Reset(); //temporarily block here
-                        while ((movingAverage < 0.02 * LiveListeners.Count) && (LiveListeners.Count > 1))
+                        var live = LiveListeners.Where(x => !x.listener.QuietExit);
+                        while ((movingAverage < 0.05 * live.Count()) && (live.Count() > 1))
                         {
                             for (int i = 0; i < LiveListeners.Count; i++)
                             {
                                 // Find and bonk the first idle thread
-                                if (LiveListeners[i].listener.Working == 0)
+                                if (!LiveListeners[i].listener.QuietExit)
                                 {
-                                    var l = LiveListeners[i];
-                                    LiveListeners.RemoveAt(i);
-                                    l.token.Cancel();
+                                    LiveListeners[i].listener.QuietExit = true;
+                                    live = LiveListeners.Where(x => !x.listener.QuietExit);
                                     break;
                                 }
                             }
@@ -191,9 +210,14 @@ namespace Cookie.TCP
         }
 
 
-        public void CallOnRequest(RequestReader request, ResponseSender response)
+        public async Task CallOnRequest(Request request, Response response)
         {
-            OnRequest?.Invoke(request, response);
+            // Convert the EventHandler into an async action and await it
+            foreach (RequestProcessor handler in OnRequest!.GetInvocationList())
+            {
+                // Use Task.Run to handle the async method properly
+                await handler(request, response);
+            }
         }
 
         /// <summary>
@@ -224,6 +248,7 @@ namespace Cookie.TCP
             await Task.WhenAll(tasks);
 
             Dispose();
+            ClosureSource.SetResult();
         }
 
 
@@ -248,12 +273,17 @@ namespace Cookie.TCP
             }
 
             monitorSignal.Dispose();
+            ClosureSource.SetResult();
+            // no need for finalize
+            GC.SuppressFinalize(this);
         }
 
         public override void Exit()
         {
             var t = Close();
             Task.WaitAll(t);
+            ClosureSource.SetResult();
+
         }
     }
 }

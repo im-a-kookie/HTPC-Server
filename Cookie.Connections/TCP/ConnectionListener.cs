@@ -1,6 +1,6 @@
 ﻿using Cookie.Addressing;
+using Cookie.Connections;
 using Cookie.Logging;
-using Cookie.Utils;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -9,7 +9,7 @@ using System.Security.Authentication;
 #if !BROWSER
 namespace Cookie.TCP
 {
-    internal class ConnectionListener : Addressable
+    public class ConnectionListener : Addressable
     {
 
         /// <summary>
@@ -28,6 +28,9 @@ namespace Cookie.TCP
         /// A counter for the number of in-flight calls
         /// </summary>
         internal int InFlightCalls = 0;
+
+
+        public bool QuietExit = false;
 
         /// <summary>
         /// A boolean flag indicating whether this listener is still alive
@@ -74,7 +77,6 @@ namespace Cookie.TCP
         /// </summary>
         internal async void Listen()
         {
-            Interlocked.Increment(ref connection.IdleWorkers);
             List<Task> active = new();
             try
             {
@@ -92,9 +94,7 @@ namespace Cookie.TCP
                     // Await a response
                     var client = connection.listener.AcceptTcpClientAsync(Token);
                     await client;
-                    Interlocked.CompareExchange(ref Working, 0, 1);
                     // We are now counted as a live thread
-
                     Interlocked.Increment(ref InFlightCalls);
                     Interlocked.Decrement(ref connection.IdleWorkers);
 
@@ -107,13 +107,10 @@ namespace Cookie.TCP
                         active.Add(Task.Run(async () =>
                         {
                             //using (tcpClient) // Ensures cleanup of the TcpClient
-                            using (var stream = await GetClientStream(tcpClient))
-                                await Process(stream);
-
-                            tcpClient.Close();
+                            var stream = await GetClientStream(tcpClient);
+                            await Process(tcpClient, stream);
                             Interlocked.Decrement(ref InFlightCalls);
                         }));
-
                         // Whatever
                         Interlocked.Add(ref RequestRateCounter, 1000);
                     }
@@ -123,10 +120,10 @@ namespace Cookie.TCP
                         if (client.Result != null) client.Result.Close();
                     }
 
-
                     // This thread is no longer live
-                    Interlocked.CompareExchange(ref Working, 1, 0);
                     Interlocked.Increment(ref connection.IdleWorkers);
+
+                    if (QuietExit) return;
                 }
             }
             catch { }
@@ -136,6 +133,8 @@ namespace Cookie.TCP
                 await Task.WhenAll(active);
                 Interlocked.Decrement(ref connection.IdleWorkers);
             }
+            Logger.Log($"Listener closed: {Address}");
+
         }
 
         /// <summary>
@@ -168,22 +167,25 @@ namespace Cookie.TCP
             }
         }
 
+
+
         /// <summary>
         /// Processes the input client request.
         /// </summary>
         /// <param name="client"></param>
-        internal async Task Process(Stream stream)
+        internal async Task Process(TcpClient client, Stream stream)
         {
 
             try
             {
                 // get the underlying stream
                 // Establish a request and response
-                var request = new RequestReader(stream);
-                await request.Read();
+                var request = new Request();
+                await request.ReadAsync(stream);
+                var response = new Response(request);
 
-                var response = new ResponseSender(request);
-                connection.CallOnRequest(request, response);
+
+
 
             }
             catch (Exception e)
@@ -192,7 +194,8 @@ namespace Cookie.TCP
             }
             finally
             {
-                stream?.Close();
+                stream.Close();
+                client.Close();
             }
         }
 
