@@ -14,7 +14,7 @@ namespace Cookie.Logging
         /// <summary>
         /// The identifier for this warning
         /// </summary>
-        public Address<long> Identifier { get; private set; }
+        public Address<int> Identifier { get; private set; }
         /// <summary>
         /// The name of this warning
         /// </summary>
@@ -27,7 +27,7 @@ namespace Cookie.Logging
         /// <summary>
         /// Gets the code for this warning
         /// </summary>
-        public string Code => Identifier.Text;
+        public string Code => Identifier.AsRawHex;
 
         /// <summary>
         /// Creates a new warning with the given name and message
@@ -86,12 +86,11 @@ namespace Cookie.Logging
 
         }
 
-
         public override string ToString()
         {
             if (Body != null)
-                return $"#{Identifier.Text} {Body}";
-            else return $"#{Identifier.Text} {Name}";
+                return $"#{Identifier.AsRawHex} {Body}";
+            else return $"#{Identifier.AsRawHex} {Name}";
         }
 
         public override bool Equals(object? obj)

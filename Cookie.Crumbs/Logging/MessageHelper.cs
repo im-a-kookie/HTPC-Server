@@ -13,7 +13,7 @@ namespace Cookie.Logging
         /// <summary>
         /// A mapping of addresses to the underlying warnings
         /// </summary>
-        internal static Dictionary<Address<long>, Message> AddressWarning = [];
+        internal static Dictionary<Address<int>, Message> AddressWarning = [];
 
         /// <summary>
         /// A mapping of string codes/names to warning objects
@@ -23,10 +23,10 @@ namespace Cookie.Logging
         internal static Dictionary<string, bool> DisabledByKey = [];
 
 
-        internal static Address<long> ProvideAddress(Message m)
+        internal static Address<int> ProvideAddress(Message m)
         {
             string var = m.Name + m.Body;
-            return new Address<long>(CryptoHelper.GetStringHash(var));
+            return new Address<int>(CryptoHelper.GetStringHash(var));
         }
 
 
@@ -48,7 +48,7 @@ namespace Cookie.Logging
         public static void Register(Message w)
         {
             MessageHelper.AddressWarning.Add(w.Identifier, w);
-            MessageHelper.NameWarning.Add(w.Identifier.Text.ToLower(), w);
+            MessageHelper.NameWarning.Add(w.Identifier.AsRawHex.ToLower(), w);
             MessageHelper.NameWarning.Add(w.Name.ToLower(), w);
 
             bool flag = true;

@@ -1,6 +1,4 @@
-﻿using Cookie.Logging;
-using Cookie.Utils;
-using Cookie.Utils.Exceptions;
+﻿using Cookie.Utils.Exceptions;
 
 namespace Cookie.Logging
 {

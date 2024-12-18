@@ -1,5 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
 using System.Text;
 using static Cookie.Serializers.SerializationConstants;
 
@@ -11,7 +10,7 @@ namespace Cookie.Serializers.Nested
     public class NestedEncoder
     {
 
-       
+
         public static bool Indent = true;
 
         /// <summary>
@@ -60,6 +59,9 @@ namespace Cookie.Serializers.Nested
                 case Dictionary<string, string> d:
                     // Serialize a dictionary with string keys and values.
                     sb.Append($"{Condense(d, depth + 1)};");
+                    break;
+                case IDictable dictable:
+                    condense(dictable.MakeDictionary(), depth);
                     break;
                 case Dictionary<string, object> d:
                     // Serialize a dictionary with string keys and object values.

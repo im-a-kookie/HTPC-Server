@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Cookie.Serializers
+﻿namespace Cookie.Serializers
 {
-    class LCG
+    internal class LCG
     {
         private const ulong m = 4294967296; // aka 2^32
         private const ulong a = 1664525;

@@ -8,7 +8,7 @@ namespace Cookie.ContentLibrary
     /// of a file, and allows it to be retrieved either locally,
     /// or from the backend
     /// </summary>
-    public class MediaFile : BasicSerial
+    public class MediaFile : IDictable
     {
         /// <summary>
         /// The title that owns this file
@@ -51,6 +51,32 @@ namespace Cookie.ContentLibrary
         public string Path { get; set; } = "";
 
         /// <summary>
+        /// Decompresses this path using the given library's decompression scheme
+        /// </summary>
+        /// <param name="library"></param>
+        /// <returns></returns>
+        public string DecompressPath(Library library)
+        {
+            string path = Path;
+            int pos = path.IndexOf('<');
+            while (pos >= 0)
+            {
+                int epos = path.IndexOf('>');
+                if (epos > 0)
+                {
+                    var substring = path.Substring(pos, pos - epos + 1);
+                    if (library.abbreviations.TryGetValue(substring, out var abbrev))
+                    {
+                        path = path.Replace(substring, abbrev);
+                    }
+                }
+                pos = path.IndexOf("<");
+            }
+            return path;
+        }
+
+
+        /// <summary>
         /// The Remote Path for this file, for communication over network.
         /// 
         /// <para>If <see cref="Path"/> is set and exists, then this is expected to be a backend
@@ -58,28 +84,26 @@ namespace Cookie.ContentLibrary
         /// </summary>
         public string Remote { get; set; } = "";
 
-
-        public override void Read(Dictionary<string, string> data)
+        public void FromDictionary(IDictionary<string, object> dict)
         {
-            if (data.TryGetValue("Res", out var s) && int.TryParse(s, out var i)) Res = i;
-            if (data.TryGetValue("Codec", out s)) Codec = s;
-            if (data.TryGetValue("Year", out s) && int.TryParse(s, out i)) Year = i;
-            if (data.TryGetValue("SNo", out s) && int.TryParse(s, out i)) SNo = i;
-            if (data.TryGetValue("EpNo", out s) && int.TryParse(s, out i)) EpNo = i;
-            if (data.TryGetValue("Path", out s)) Path = s;
+            Res = (int)dict["R"];
+            Codec = (string)dict["C"];
+            Year = (int)dict["Y"];
+            SNo = (int)dict["S"];
+            EpNo = (int)dict["E"];
+            Path = (string)dict["P"];
+
         }
 
-        public override Dictionary<string, string> Write()
+        public void ToDictionary(IDictionary<string, object> dict)
         {
-            Dictionary<string, string> result = new();
-            result.Add("Res", Res.ToString());
-            result.Add("Codec", Codec);
-            result.Add("Year", Year.ToString());
-            result.Add("SNo", SNo.ToString());
-            result.Add("EpNo", EpNo.ToString());
-            result.Add("Path", Path);
-
-            return result;
+            dict["R"] = Res;
+            dict["C"] = Codec;
+            dict["Y"] = Year;
+            dict["S"] = SNo;
+            dict["E"] = EpNo;
+            dict["P"] = Path;
+            dict["M"] = Remote;
         }
     }
 }

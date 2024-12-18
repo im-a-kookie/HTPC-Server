@@ -1,12 +1,11 @@
 ﻿using Cookie.Logging;
-using Cookie.Utils;
 using System.Net.Sockets;
 using System.Text;
 
 namespace Cookie.UDP
 {
 
-
+#if !BROWSER
     /// <summary>
     /// The UDP channel allows UDP messages to be sent back and forth between instances. This allows quick
     /// simple communication without the fuss of TCP.
@@ -37,9 +36,7 @@ namespace Cookie.UDP
         {
             this.ListenPort = listenPort;
             this.SendPort = sendPort;
-#if !BROWSER
             new Thread(Listen).Start();
-#endif
         }
 
 
@@ -49,11 +46,9 @@ namespace Cookie.UDP
         /// <param name="message"></param>
         public void Send(string message)
         {
-#if !BROWSER
             using UdpClient udpClient = new UdpClient();
             udpClient.Connect("localhost", SendPort);
             udpClient.Send(Encoding.ASCII.GetBytes(message));
-#endif
         }
 
         /// <summary>
@@ -62,16 +57,14 @@ namespace Cookie.UDP
         /// <param name="message"></param>
         public void Send(byte[] message)
         {
-#if !BROWSER
             using UdpClient udpClient = new UdpClient();
             udpClient.Connect("localhost", SendPort);
             udpClient.Send(message);
-#endif
+
         }
 
         public async void Listen()
         {
-#if !BROWSER
             Logger.Debug("UDP Start on " + ListenPort);
             UdpClient udc = new UdpClient(ListenPort);
             try
@@ -105,7 +98,7 @@ namespace Cookie.UDP
                     new Thread(Listen).Start();
                 }
             }
-#endif
+
         }
 
 
@@ -114,5 +107,5 @@ namespace Cookie.UDP
 
 
     }
-
+#endif
 }

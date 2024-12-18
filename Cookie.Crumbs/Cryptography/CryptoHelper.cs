@@ -5,7 +5,7 @@ namespace Cookie.Cryptography
 {
     public class CryptoHelper
     {
-        const string defaultKey = "43o87yreiuytw346vrte";
+        private const string defaultKey = "43o87yreiuytw346vrte";
 
         public static string HashString(string input)
         {
@@ -22,7 +22,7 @@ namespace Cookie.Cryptography
             {
                 byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
                 int n = 0;
-                for(int i = 0; i < hash.Length; i++)
+                for (int i = 0; i < hash.Length; i++)
                 {
                     n ^= hash[i] << (i & 0x3);
                 }
@@ -81,7 +81,6 @@ namespace Cookie.Cryptography
         public static byte[] Decrypt(byte[] data)
         {
 #if !BROWSER
-
             using (Aes aes = Aes.Create())
             {
                 (aes.Key, aes.IV) = GenerateKeyAndIV("43o87yreiuytw346vrte");

@@ -17,23 +17,29 @@ namespace Cookie.Logging
     /// <para>Where multiple outputs are desired, add additional TextWriters to a single logger,
     /// rather than instantiating new loggers.</para>
     /// </summary>
-    public class LoggerStream
+    public class LoggerStream : IDisposable
     {
         private List<TextWriter> _writers = [];
 
         private bool ShouldDebug = false;
 
         private readonly LogLevel _logLevel;
+
+        /// <summary>
+        ///  Whether the logger automatically flushes after every write
+        /// </summary>
+        public bool Flushes = true;
+
         public LoggerStream(LogLevel logLevel = LogLevel.Info, string? logFilePath = null, IEnumerable<TextWriter>? writer = null)
         {
             _logLevel = logLevel;
 
             // We were not given a writer, so add the console
-            if (writer == null)
+            if (writer == null && logFilePath == null)
             {
                 _writers.Add(Console.Out);
             }
-            else
+            else if (writer != null)
             {
                 _writers.AddRange(writer.Where(x => x != null));
             }
@@ -57,29 +63,36 @@ namespace Cookie.Logging
 
         internal void WriteLog(LogLevel level, string? message)
         {
-            if (level >= _logLevel)
+            try
             {
-                // Handle injected warnings/messages
-                if (_logLevel > LogLevel.Debug)
+                if (level >= _logLevel)
                 {
-                    message = MessageHelper.Inject(message);
-                }
-                if (message == null) return;
+                    // Handle injected warnings/messages
+                    if (_logLevel > LogLevel.Debug)
+                    {
+                        message = MessageHelper.Inject(message);
+                    }
+                    if (message == null) return;
 
-                string h = Header + $"[{level}]: ";
-                string logMessage = $"{h}{message}";
-                //print to all attached text writers
-                foreach (TextWriter writer in _writers)
-                {
-                    writer?.WriteLine(logMessage);
-                }
+                    string h = Header + $" [{level}]: ";
+                    string logMessage = $"{h}{message}";
+                    //print to all attached text writers
+                    foreach (TextWriter writer in _writers)
+                    {
+                        writer?.WriteLine(logMessage);
+                        if (Flushes) writer?.Flush();
+                    }
 
-                //and check if we should use debug output
-                if (ShouldDebug)
-                {
-                    System.Diagnostics.Debug.WriteLine(logMessage);
-                }
+                    //and check if we should use debug output
+                    if (ShouldDebug)
+                    {
+                        System.Diagnostics.Debug.WriteLine(logMessage);
+                    }
 
+                }
+            }
+            catch
+            {
             }
         }
 
@@ -122,7 +135,7 @@ namespace Cookie.Logging
         public void Warn(Message warning, string? message = null)
         {
 
-            WriteLog(LogLevel.Warn, $"{warning.Code}: {message}".TrimEnd());
+            WriteLog(LogLevel.Warn, $"0x{warning.Code} {warning.Name}: {message}".TrimEnd());
         }
 
         public void WriteBlock(string header, string message, LogLevel? level = null)
@@ -150,6 +163,14 @@ namespace Cookie.Logging
             }
 
         }
+
+        public void Dispose()
+        {
+            foreach (var w in _writers)
+            {
+                if (w != Console.Out) w.Dispose();
+            }
+        }
     }
 
     /// <summary>
@@ -158,67 +179,79 @@ namespace Cookie.Logging
     public class Logger
     {
 
-        public static LoggerStream Default = new LoggerStream(LogLevel.Info);
+        public static void SetTarget(LoggerStream stream)
+        {
+            _current = stream;
+        }
+
+        public static void ResetTarget()
+        {
+            _current = Default;
+        }
+
+
+        public static readonly LoggerStream Default = new LoggerStream(LogLevel.Info);
+        private static LoggerStream _current = Default;
 
         public static void Log(string message, LogLevel level)
         {
-            Default.Log(message, level);
+            _current.Log(message, level);
         }
 
         public static void Log(string message)
         {
-            Default.Log(message);
+            _current.Log(message);
         }
 
         public static void Debug(string message)
         {
-            Default.WriteLog(LogLevel.Debug, message);
+            _current.WriteLog(LogLevel.Debug, message);
         }
 
         public static void Info(string message)
         {
-            Default.WriteLog(LogLevel.Info, message);
+            _current.WriteLog(LogLevel.Info, message);
         }
 
         public static void Warn(string message)
         {
-            Default.WriteLog(LogLevel.Warn, message);
+            _current.WriteLog(LogLevel.Warn, message);
         }
 
         public static void Error(string message)
         {
-            Default.WriteLog(LogLevel.Error, message);
+            _current.WriteLog(LogLevel.Error, message);
         }
 
         public static void Fatal(string message)
         {
-            Default.WriteLog(LogLevel.Fatal, message);
+            _current.WriteLog(LogLevel.Fatal, message);
         }
 
         public static void Error(Error error, string message)
         {
-            Default.WriteLog(LogLevel.Error, $"{error.InnerMessage.Code}: {message}".TrimEnd());
+            _current.WriteLog(LogLevel.Error, $"0x{error.InnerMessage.Code} {error.MessagePrepend} {message}".TrimEnd());
         }
 
         public static void Fatal(Error error, string message)
         {
-            Default.WriteLog(LogLevel.Fatal, $"{error.InnerMessage.Code}: {message}".TrimEnd());
+            _current.WriteLog(LogLevel.Fatal, $"0x{error.InnerMessage.Code} {error.MessagePrepend} {message}".TrimEnd());
         }
 
         public static void Warn(Message warning, string? message = null)
         {
 
-            Default.WriteLog(LogLevel.Warn, $"{warning.Code}: {message}".TrimEnd());
+            _current.WriteLog(LogLevel.Warn, $"0x{warning.Code} {warning.Name}: {message}".TrimEnd());
         }
 
         public static void Debug(Message debugWarning, string? message = null)
         {
-            Default.WriteLog(LogLevel.Debug, $"{debugWarning.Code}: {message}".TrimEnd());
+            _current.WriteLog(LogLevel.Debug, $"0x{debugWarning.Code} {debugWarning.Name}: {message}".TrimEnd());
         }
 
         public static void WriteBlock(string header, string message, LogLevel? level = null)
         {
-            Default.WriteBlock(header, message, level);
+            _current.WriteBlock(header, message, level);
 
         }
 

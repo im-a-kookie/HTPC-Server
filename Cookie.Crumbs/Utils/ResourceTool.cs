@@ -13,7 +13,7 @@ namespace Cookie.Utils
         {
 
             // Get the assembly that contains the embedded resource
-            var assembly = Assembly.GetExecutingAssembly();
+            var assembly = Assembly.GetCallingAssembly();
 
             using (var stream = assembly.GetManifestResourceStream(path))
             {

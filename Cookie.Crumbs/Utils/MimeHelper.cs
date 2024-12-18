@@ -13,7 +13,7 @@ namespace Cookie.Utils
         static MimeHelper()
         {
 
-            string resourceName = "CookieCrumbs.Utils.mimes.txt"; // Update this with the correct namespace and file name
+            string resourceName = "Cookie.Utils.mimes.txt"; // Update this with the correct namespace and file name
             var content = ResourceTool.GetResource(resourceName);
             //make sure we actually found it
             if (content == null)

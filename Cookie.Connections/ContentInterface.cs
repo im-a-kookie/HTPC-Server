@@ -1,13 +1,13 @@
 ﻿using Cookie.ContentLibrary;
 using Cookie.Logging;
-using Cookie.TCP;
 using Cookie.UDP;
-using Cookie.Utils;
 using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 #if !BROWSER
+using Cookie.TCP;
+
 namespace Cookie
 {
     /// <summary>

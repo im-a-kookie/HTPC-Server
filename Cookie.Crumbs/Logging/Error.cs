@@ -1,6 +1,4 @@
 ﻿using Cookie.Addressing;
-using Cookie.Cryptography;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
@@ -145,7 +143,7 @@ namespace Cookie.Logging
         /// <param name="details"></param>
         /// <param name="innerException"></param>
         public void Throw(string? details = null, Exception? innerException = null)
-        {            
+        {
             Logger.Fatal(this, details ?? String.Empty);
             var e = Get(details, innerException);
             throw e;

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Cookie.Serializers
+﻿namespace Cookie.Serializers
 {
     internal class SerializationConstants
     {
@@ -42,7 +36,7 @@ namespace Cookie.Serializers
         /// <summary>
         /// List header
         /// </summary>
-        public const char Hlist = 'i';
+        public const char Hlist = 'l';
         /// <summary>
         /// Mapping header
         /// </summary>

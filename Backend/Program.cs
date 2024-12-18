@@ -1,12 +1,10 @@
-﻿using Cookie.ContentLibrary;
+﻿using Backend.API;
+using Cookie.Connections.API;
 using Cookie.Serializers;
 using Cookie.Serializers.Bytewise;
-using Cookie.Serializers.Nested;
 using Cookie.Serializing;
-using System.Collections;
-using System.Collections.Concurrent;
+using Cookie.TCP;
 using System.Diagnostics;
-using System.Text;
 
 namespace Backend.ServerLibrary
 {
@@ -18,66 +16,62 @@ namespace Backend.ServerLibrary
         public static void Main(string[] args)
         {
 
-
-            Dictionary<string, object> test = new();
-
-            test.Add("banana", new Dictionary<string, string>());
-            ((Dictionary<string, string>)test["banana"]).Add("0", "apple");
-            ((Dictionary<string, string>)test["banana"]).Add("1", "orange");
-            ((Dictionary<string, string>)test["banana"]).Add("2", "pear");
-            test.Add("peanut", "butter");
-
-            Dictionary<string, object> inner0 = new()
-            {
-                { "key0", "cake" },
-                { "key1", "cookie" },
-                { "key2", "pie" }
-            };
-
-            Dictionary<string, object> inner1 = new()
-            {
-                { "key0", "jelly" },
-                { "key1", "custard" },
-                { "key2", inner0 }
-            };
-
-            string b128 = Encoding.UTF8.GetBytes("Cookies are amazing").ToBase128();
-            Console.WriteLine(b128);
-            Console.WriteLine(Encoding.UTF8.GetString(b128.ToBytesBase128()));
+            var b = new Controller<Program>(new Program());
 
 
-            test.Add("deserts", inner1);
-            test.Add("chocolate", new List<string>() { "milk", "cookies", "ice-cream" });
+            var l = new Login();
 
-            var result = NestedEncoder.Condense(test, 0);
-            NestedDecoder.Process($"{{{result}}}");
+            b.Discover<Login>(l);
 
-            using MemoryStream ms = new();
-            Byter.ToBytes(ms, test);
-            var bytes = ms.ToArray();
-            Console.WriteLine(Encoding.UTF8.GetString((byte[])bytes));
-            using MemoryStream os = new(bytes);
-            var dict = Byter.FromBytes(os);
+            l.banana = "Things!";
 
-
-            var n = new Title("banana");
-            var sb = new StringBuilder();
-
-
-            var searcher = new Searcher("S:/");
+            var searcher = new Searcher("E:/");
             var lib = searcher.Enumerate(4);
-
+            lib.CompressPaths();
             Directory.CreateDirectory("Testing");
             Stopwatch s = Stopwatch.StartNew();
+
+            using var ms = new MemoryStream();
+            Byter.ToBytes(ms, ((IDictable)lib).MakeDictionary());
+            File.WriteAllBytes("Total.txt", ms.ToArray());
+
+
             foreach (var item in lib.FoundSeries)
             {
-                var str = item.ToString();
-                File.WriteAllText($"Testing/{item.Value.Name}.txt", str);
+                try
+                {
+                    File.Delete($"Testing/{item.Value.Name}.txt");
+                    using var file = File.OpenWrite($"Testing/{item.Value.Name}.txt");
+                    Byter.ToBytes(file, ((IDictable)item.Value).MakeDictionary());
+                }
+                catch { }
+
             }
             Console.WriteLine("Time: " + s.Elapsed.TotalMilliseconds);
 
 
             Console.WriteLine("Done!");
+
+
+            var connection = new ConnectionProvider(1234);
+            connection.OnRequest += async (req, res) =>
+            {
+                if (File.Exists("wwwroot" + req.Target))
+                {
+                    res.SetFile("wwwroot" + req.Target);
+                }
+                else if (req.Target == "/")
+                {
+                    res.SetFile("wwwroot/index.html");
+                }
+            };
+            while (true)
+            {
+                Console.ReadLine();
+            }
+
+
+
         }
 
 

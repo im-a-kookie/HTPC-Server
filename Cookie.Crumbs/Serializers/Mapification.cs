@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Frozen;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices.ObjectiveC;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Cookie.Serializers
 {
@@ -95,13 +89,13 @@ namespace Cookie.Serializers
 
         private static IDictable? TryFillGeneric(IDictionary<string, object> data)
         {
-            if(data.TryGetValue("__type__", out var typeName) )
+            if (data.TryGetValue("__type__", out var typeName))
             {
                 object? result = null;
-                if(typeName is string s)
+                if (typeName is string s)
                 {
                     result = Construct(s);
-                    if(result is IDictable id)
+                    if (result is IDictable id)
                     {
                         id.FromDictionary(data);
                         return id;
@@ -113,14 +107,14 @@ namespace Cookie.Serializers
 
         static Mapification()
         {
-            RegisterMapping(typeof(IDictable), (x) => ((IDictable)x!).ToDictionary(), (x) => TryFillGeneric(x));
+            RegisterMapping(typeof(IDictable), (x) => ((IDictable)x!).MakeDictionary(), (x) => TryFillGeneric(x));
         }
 
 
         public static bool GetDefaultConstructor(Type t)
         {
             var constructor = t.GetConstructor([]);
-            if(constructor == null) return false;
+            if (constructor == null) return false;
             builders.TryAdd(t, constructor);
             return true;
         }
@@ -142,7 +136,7 @@ namespace Cookie.Serializers
         public static Dictionary<string, object> MapObject(object o, bool aggressive = false)
         {
             return new();
-            
+
 
 
 

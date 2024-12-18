@@ -2,7 +2,7 @@
 
 namespace Cookie.ContentLibrary
 {
-    public class Title : BasicSerial
+    public class Title : IDictable
     {
 
         /// <summary>
@@ -50,105 +50,21 @@ namespace Cookie.ContentLibrary
         public bool PredictMovie => EpisodeList.Count == 1;
 
 
-        public override Dictionary<string, string> Write()
+        public void ToDictionary(IDictionary<string, object> dict)
         {
-            Dictionary<string, string> result = new();
-            result.Add("Code", Code.ToString());
-            result.Add("id", id);
-            result.Add("Name", Name.ToString());
-
-            Dictionary<string, (int count, int index)> counter = new();
-            Dictionary<MediaFile, string> condenser = new();
-
-            int saved = 0;
-
-            // Let's see if we can condense it
-            foreach (var kv in Eps)
-            {
-                foreach (var ep in kv.Value.Eps)
-                {
-                    string p = Path.GetDirectoryName(ep.Path)!;
-                    if (!counter.TryAdd(p, (1, counter.Count)))
-                    {
-                        var val = counter[p];
-                        counter[p] = (val.count + 1, val.index);
-                    }
-                    condenser.Add(ep, p);
-                }
-            }
-
-            foreach (var k in counter)
-            {
-                result.Add($"_{k.Value.index}", k.Key);
-                saved += k.Key.Length * (k.Value.count - 1);
-            }
-
-            List<string> results = new List<string>();
-            foreach (var kv in Eps)
-            {
-                // Let's just build a list of lists
-                // And realign the series collection later
-                foreach (var ep in kv.Value.Eps)
-                {
-                    Dictionary<string, string> data = new();
-                    data["SNo"] = ep.SNo.ToString();
-                    data["EpNo"] = ep.EpNo.ToString();
-                    data["Codec"] = ep.Codec;
-                    string pp = condenser[ep];
-                    data["Path"] = $"<{counter[pp].index}>{ep.Path.Substring(pp.Length)}";
-                    data["Year"] = ep.Year.ToString();
-                    data["Res"] = ep.Res.ToString();
-                    results.Add(Condense(data));
-                }
-            }
-
-            result.Add("Eps", Condense(results));
-            return result;
+            dict["N"] = Name;
+            dict["I"] = id;
+            dict["C"] = Code;
+            dict["E"] = Eps;
         }
 
-        public override void Read(Dictionary<string, string> data)
+        public void FromDictionary(IDictionary<string, object> dict)
         {
-            if (data.TryGetValue("Code", out var s) && int.TryParse(s, out int i)) Code = i;
-            if (data.TryGetValue("id", out s)) id = s;
-            if (data.TryGetValue("Name", out s)) Name = s;
-
-            if (data.TryGetValue("Eps", out s) && Read(s) is List<string> list)
-            {
-                foreach (var entry in list)
-                {
-                    if (Read(entry) is Dictionary<string, string> dict)
-                    {
-                        if (!dict.TryGetValue("SNo", out s) || !int.TryParse(s, out i))
-                            i = -1;
-
-                        if (!Eps.TryGetValue(i, out var season))
-                            season = new Season();
-                        Eps.TryAdd(i, season);
-
-                        if (dict.TryGetValue("Path", out s))
-                        {
-                            i = s.IndexOf("<");
-                            int j = s.IndexOf(">");
-                            if (i >= 0 && j > i)
-                            {
-                                var k = s.Substring(i + 1, j - i - 1);
-                                if (dict.TryGetValue(k, out var mask))
-                                {
-                                    dict["Path"] = mask + s.Substring(j + 1);
-                                }
-                            }
-                        }
-
-                        // now do more thing
-                        MediaFile file = new();
-                        file.Read(dict);
-                        season.Eps.Add(file);
-                    }
-                }
-            }
+            Name = (string)dict["N"];
+            id = (string)dict["I"];
+            Code = (int)dict["C"];
+            Eps = (Dictionary<int, Season>)dict["E"];
         }
-
-
 
         /// <summary>
         /// Converts this series object into a json that describes

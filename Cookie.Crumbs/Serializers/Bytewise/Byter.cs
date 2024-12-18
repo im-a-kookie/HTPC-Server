@@ -1,17 +1,8 @@
-﻿using Microsoft.VisualBasic;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Numerics;
+﻿using System.Collections;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading.Tasks;
 
 using static Cookie.Serializers.SerializationConstants;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Cookie.Serializers.Bytewise
 {
@@ -124,9 +115,9 @@ namespace Cookie.Serializers.Bytewise
             Types[Hfloat] = typeof(float);
             Types[Hstring] = typeof(string);
             Types[Hbyte] = typeof(byte[]);
-            Types[Hdict] = typeof(Dictionary<string, string>);
+            Types[Hdict] = typeof(IDictionary);
             //Types[Hmap] = typeof(Dictionary<string, object>);
-            Types[Hlist] = typeof(List<object>);
+            Types[Hlist] = typeof(IList);
             Types[Hobj] = typeof(object);
             // and backwards, map types to characters
             for (int i = 0; i < Types.Length; ++i)
@@ -171,7 +162,8 @@ namespace Cookie.Serializers.Bytewise
             {
                 context.writer!.Write(Hfloat);
                 context.writer!.Write((double)data);
-            });
+            }
+            );
 
             // and byte arrays
             Writers[typeof(byte[])] = (Hbyte, (context, data) =>
@@ -188,7 +180,7 @@ namespace Cookie.Serializers.Bytewise
             {
                 context.writer!.Write(Hcoded);
                 context.writer!.Write(context.GetCode(data.GetType()));
-                ToStream(context, ((IDictable)data).ToDictionary());
+                ToStream(context, ((IDictable)data).MakeDictionary());
                 return;
             }
             );
@@ -204,13 +196,15 @@ namespace Cookie.Serializers.Bytewise
             Writers[typeof(List<string>)] = (Hlist, (context, data) =>
             {
                 ToStream(context, (List<string>)data);
-            });
+            }
+            );
 
 
             Writers[typeof(string[])] = (Hlist, (context, data) =>
             {
                 ToStream(context, ((string[])data).ToList());
-            });
+            }
+            );
 
 
             // Also register a generic writer
@@ -252,7 +246,7 @@ namespace Cookie.Serializers.Bytewise
                         if (keyType == Hstring)
                         {
                             var dict = ReadDict<string, object>(context, count, keyType, valType);
-                            if(dict != null)
+                            if (dict != null)
                                 target.FromDictionary(dict!);
                         }
 
@@ -286,11 +280,11 @@ namespace Cookie.Serializers.Bytewise
                 var length = context.reader.ReadInt32();
                 Type? keyType = Types[keyCode];
                 Type? valType = Types[valCode];
-                if(keyType != null && valType != null)
+                if (keyType != null && valType != null)
                 {
                     var tm = mDict.MakeGenericMethod(keyType!, valType!);
                     return tm.Invoke(null, [context, length, keyCode, valCode]);
-                }                
+                }
                 return null;
             };
 
@@ -352,7 +346,7 @@ namespace Cookie.Serializers.Bytewise
             for (int i = 0; i < count; i++)
             {
                 var valCode = context.reader!.ReadChar();
-                var obj = valueReader(context, valCode);
+                var obj = valueReader(context, valCode)!;
                 results.Add((T?)(obj ?? null));
             }
             return results;
@@ -365,7 +359,7 @@ namespace Cookie.Serializers.Bytewise
             context.reader = reader;
             // now read a thing
             int count = reader.ReadInt32();
-            for(int i = 0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
                 int index = reader.ReadInt32();
                 string t = reader.ReadString();
@@ -375,7 +369,7 @@ namespace Cookie.Serializers.Bytewise
                 if (!type.IsAssignableTo(typeof(IDictable))) throw new Exception("Cannot decode non-dictable type " + t);
 
                 var c = type.GetConstructor([]);
-                if(c == null) throw new Exception("Type must have empty constructor! " + t);
+                if (c == null) throw new Exception("Type must have empty constructor! " + t);
 
                 // load it
                 context.TypeLookup.Add(type, index);
@@ -386,7 +380,7 @@ namespace Cookie.Serializers.Bytewise
 
             // now we can just read I guesssss
             var header = reader.ReadChar();
-            if(header == Hdict)
+            if (header == Hdict)
             {
                 var key = reader.ReadChar();
                 var value = reader.ReadChar();
@@ -399,7 +393,7 @@ namespace Cookie.Serializers.Bytewise
         public static void ToBytes(Stream output, IDictionary<string, object> data)
         {
             using MemoryStream firstWrite = new();
-            using BinaryWriter bw = new (firstWrite);
+            using BinaryWriter bw = new(firstWrite);
             SerialContext context = new();
             context.writer = bw;
 
@@ -408,7 +402,7 @@ namespace Cookie.Serializers.Bytewise
             //process the context for rebuilding
             using BinaryWriter contextWriter = new(output, Encoding.Default, leaveOpen: true);
             contextWriter.Write(context.TypeLookup.Count);
-            foreach(var kv in context.CodeLookup)
+            foreach (var kv in context.CodeLookup)
             {
                 contextWriter.Write(kv.Key);
                 contextWriter.Write(kv.Value.AssemblyQualifiedName!);
@@ -418,7 +412,7 @@ namespace Cookie.Serializers.Bytewise
             firstWrite.CopyTo(output);
             firstWrite.Dispose();
             context.writer.Dispose();
-            
+
         }
 
         public static void ToStream(SerialContext context, object data)
@@ -483,7 +477,7 @@ namespace Cookie.Serializers.Bytewise
             {
                 context.writer!.Write(Hcoded);
                 context.writer!.Write(context.GetCode(t));
-                ToStream(context, ((IDictable)data).ToDictionary());
+                ToStream(context, ((IDictable)data).MakeDictionary());
                 return;
             }
 
@@ -497,7 +491,7 @@ namespace Cookie.Serializers.Bytewise
                     return;
             }
 
-            if (t is IEnumerable)
+            if (data is IEnumerable)
             {
                 if (_WriteEnumerableGeneric(context, t, data))
                     return;
@@ -523,7 +517,7 @@ namespace Cookie.Serializers.Bytewise
             {
                 try
                 {
-                    var list = Enumerable.Cast<object>((IEnumerable)t);
+                    var list = Enumerable.Cast<object>((IEnumerable)data);
                     context.writer!.Write(Hlist);
                     context.writer!.Write(ValWriter.code);
                     context.writer!.Write(list.Count());

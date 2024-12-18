@@ -7,21 +7,30 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Server\DelegateBuilder.cs" />
+    <None Remove="Stubs\BadRequest.html" />
+    <None Remove="Stubs\BadRequest.json" />
+    <None Remove="Stubs\NotAuthorized.html" />
+    <None Remove="Stubs\NotAuthorized.json" />
+    <None Remove="Stubs\Redirect.html" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="TCP\Stubs\NotFound.html" />
-    <EmbeddedResource Include="TCP\Stubs\NotFound.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="Server\DelegateBuilder.cs" />
+    <EmbeddedResource Include="Stubs\BadRequest.html" />
+    <EmbeddedResource Include="Stubs\BadRequest.json" />
+    <EmbeddedResource Include="Stubs\NotAuthorized.html" />
+    <EmbeddedResource Include="Stubs\NotAuthorized.json" />
+    <EmbeddedResource Include="Stubs\NotFound.html" />
+    <EmbeddedResource Include="Stubs\NotFound.json" />
+    <EmbeddedResource Include="Stubs\Redirect.html" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Cookie.Crumbs\Cookie.Crumbs.csproj" />
     <ProjectReference Include="..\Cookie.MediaLibrary\Cookie.MediaLibrary.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Users\" />
   </ItemGroup>
 
 </Project>

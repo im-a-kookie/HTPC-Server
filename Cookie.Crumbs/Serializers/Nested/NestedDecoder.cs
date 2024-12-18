@@ -11,7 +11,7 @@ namespace Cookie.Serializers.Nested
             var span = value.AsSpan();
             char i = span[0];
             span = span.Slice(1);
-            
+
             switch (i)
             {
                 case Hint: return int.TryParse(span, out var n) ? n : -1;
@@ -102,6 +102,7 @@ namespace Cookie.Serializers.Nested
             PopulateDepthAndClean(first, body, span);
             // Move to the next step
             Process(first, body, span);
+
         }
 
         /// <summary>
