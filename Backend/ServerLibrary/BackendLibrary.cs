@@ -1,24 +1,30 @@
-﻿using Cookie.ContentLibrary;
+﻿using Cookie.Connections.API;
+using Cookie.ContentLibrary;
 namespace Backend.ServerLibrary
 {
-    internal class BackendLibrary : Library
+    internal class LibraryProvider
     {
 
-        public void Construct()
+        public FileProvider Provider;
+
+        public Library ProvidedLibrary;
+
+        public LibraryProvider(Library library)
         {
+            ProvidedLibrary = library;
 
-
-            // 1. Read the cached files
-
-            // 2. Generate the searched library
-
-            // 3. Unify the libraries
-
-
-
-
+            Provider = new();
+            Provider.PathTransformer = (x) =>
+            {
+                if (ProvidedLibrary.targetToFileMap.TryGetValue(x, out var episode))
+                {
+                    return episode.DecompressPath(ProvidedLibrary);
+                }
+                return null;
+            };
 
         }
+
 
 
 
