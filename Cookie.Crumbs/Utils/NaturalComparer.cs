@@ -1,8 +1,14 @@
-﻿namespace Backend
+﻿namespace Cookie.Utils
 {
     public class NaturalStringComparer : IComparer<string>
     {
-        public int Compare(string x, string y)
+        /// <summary>
+        /// Compare x to y using natural string comparison
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public int Compare(string? x, string? y)
         {
             if (x == y) return 0;
             if (x == null) return -1;
@@ -29,12 +35,19 @@
                     result = string.Compare(xChunks[i], yChunks[i], StringComparison.OrdinalIgnoreCase);
                 }
 
+                // return now that we've found a point of imbalance
                 if (result != 0) return result;
             }
 
+            // otherwise, compare the entire strings
             return xChunks.Count.CompareTo(yChunks.Count);
         }
 
+        /// <summary>
+        /// Divides the given string into chunks that separate numeric and non-numeric values
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         private List<string> SplitIntoChunks(string input)
         {
             List<string> chunks = new List<string>();
@@ -42,8 +55,11 @@
 
             foreach (char c in input)
             {
+                // Flip-flop when we find digits/non-digits
+                // alternately built the chunk, or make a new chunk to build
                 if (char.IsDigit(c))
                 {
+                    // flip flip the numeric chunk if the current chunk is non-numeric
                     if (!string.IsNullOrEmpty(currentChunk) && !char.IsDigit(currentChunk[0]))
                     {
                         chunks.Add(currentChunk);
@@ -53,6 +69,7 @@
                 }
                 else
                 {
+                    // and flip-flop the string
                     if (!string.IsNullOrEmpty(currentChunk) && char.IsDigit(currentChunk[0]))
                     {
                         chunks.Add(currentChunk);
@@ -62,6 +79,7 @@
                 }
             }
 
+            // Make sure to catch the last chunk
             if (!string.IsNullOrEmpty(currentChunk))
                 chunks.Add(currentChunk);
 
