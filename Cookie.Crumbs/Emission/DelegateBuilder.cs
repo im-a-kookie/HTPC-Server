@@ -5,6 +5,9 @@ using System.Reflection.Emit;
 #if !BROWSER
 namespace Cookie.Emission
 {
+    /// <summary>
+    /// Provides methods for building delegates that map delegate to an arbitrary function.
+    /// </summary>
     internal class DelegateBuilder
     {
 
@@ -14,43 +17,42 @@ namespace Cookie.Emission
         }
 
         /// <summary>
-        /// Generates an EndpointCallback delegate which will invoke the target method
+        /// Generates a delegate of the declared type, which maps to the parameters of the provided method
+        /// using: <see cref="ParameterMapping.GenerateSignatureMapping(Type[], Type[], bool)"/>
+        /// 
+        /// <para>For instance methods, <typeparamref name="DelegateTarget"/> must provide assignable instance as first parameter.</para>
         /// </summary>
         /// <param name="target"></param>
         /// <returns></returns>
         internal static DelegateTarget CreateCallbackDelegate<ContainerType, DelegateTarget>(
-        MethodInfo target,
-            out BuilderContext<ContainerType, DelegateTarget>? context) where DelegateTarget : Delegate where ContainerType : class
+            MethodInfo target,
+            out BuilderContext<ContainerType, DelegateTarget>? context
+        ) 
+        where DelegateTarget : Delegate
+        where ContainerType : class
         {
             // first, ensure input validity
 
             // Build the context for the creation
-            context = new BuilderContext<ContainerType, DelegateTarget>(target);
-            var dynamicMethod = context.CreateDynamicMethod(); // makes it easy to get the dynamic method
-
+            context = new(target);
             //now get the il generator
+            var dynamicMethod = context.CreateDynamicMethod();
             var il = dynamicMethod.GetILGenerator();
 
-            // Little debugging thing
-            //var callout = typeof(DelegateBuilder).GetMethod("Callout", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)!;
-            //for (int i = 0; i < context.EntryParams.Length; ++i)
-            //{
-            //    il.Emit(OpCodes.Ldc_I4, i);
-            //    il.Emit(OpCodes.Ldarg, i);
-            //    il.EmitCall(OpCodes.Call, callout, null);
-            //}
-
-            // If it's a non-static method, load the caller instance as the first argument
-            // As we are building the delegate as a child of the caller in this instance
-            // (host is now not null)
+            // Instance methods require <this.> referencing
             if (!target.IsStatic)
             {
-                // Find argument of model
+                // Find argument matching the container or otherwise an object
                 int n = Array.IndexOf(context.EntryParams, typeof(ContainerType));
+                if (n < 0) n = Array.IndexOf(context.EntryParams, typeof(object));
                 if (n >= 0)
                 {
                     il.Emit(OpCodes.Ldarg_S, n);
                     il.Emit(OpCodes.Castclass, context.Target.DeclaringType!);
+                }
+                else
+                {
+                    throw EmissionErrors.NoVirtualInstance.Get($"{typeof(DelegateTarget)}");
                 }
             }
 
@@ -71,14 +73,14 @@ namespace Cookie.Emission
 
             // whewwww now we can make the call
             il.EmitCall(context.IsStatic ? OpCodes.Call : OpCodes.Callvirt, context.Target, null);
-            DWrite($"Call      {context.Target.Name}");
+            //DWrite($"Call      {context.Target.Name}");
             EmitReturnType(il, context);
 
             // -- We have fully generated the IL for the dynamic method --
 
             // So create the delegate and send it back
             // The delegate itself is statically typed
-            // And uses the Model parameter to do the thing
+            // And uses the initial parameter (if needed) to do the thing
             return (DelegateTarget)dynamicMethod.CreateDelegate(typeof(DelegateTarget));
 
         }
@@ -89,7 +91,9 @@ namespace Cookie.Emission
         /// <typeparam name="T"></typeparam>
         /// <param name="il"></param>
         /// <param name="context"></param>
-        private static void EmitReturnType<M, T>(ILGenerator il, BuilderContext<M, T> context) where T : Delegate where M : class
+        private static void EmitReturnType<M, T>(ILGenerator il, BuilderContext<M, T> context) 
+            where T : Delegate 
+            where M : class
         {
             // If we do not have a return type from the delegate
             // Then we need to clear the stack from any target calls
@@ -98,10 +102,10 @@ namespace Cookie.Emission
                 if (context.TargetReturn != typeof(void))
                 {
                     il.Emit(OpCodes.Pop); //bonk
-                    DWrite($"Pop");
+                    //DWrite($"Pop");
                 }
                 il.Emit(OpCodes.Ret); //and return
-                DWrite($"Ret");
+                //DWrite($"Ret");
                 return;
             }
 
@@ -110,23 +114,23 @@ namespace Cookie.Emission
             {
                 // Null is null
                 il.Emit(OpCodes.Ldnull);
-                DWrite($"ldnull");
+                //DWrite($"ldnull");
             }
             else if (context.TargetReturn.IsValueType)
             {
                 // value types, we can box into an object
                 il.Emit(OpCodes.Box, context.TargetReturn);
-                DWrite($"Box       {context.TargetReturn}");
+                //DWrite($"Box       {context.TargetReturn}");
             }
             else
             {
                 // ref types, we can cast into objects
                 il.Emit(OpCodes.Castclass, typeof(object));
-                DWrite($"Castclass Object");
+                //DWrite($"Castclass Object");
             }
 
             il.Emit(OpCodes.Ret);
-            DWrite($"Ret");
+            //DWrite($"Ret");
 
         }
 
@@ -141,7 +145,7 @@ namespace Cookie.Emission
         {
 
             il.Emit(OpCodes.Ldarg_S, srcIndex); // load
-            DWrite($"Ldarg.S   {srcIndex}");
+            //DWrite($"Ldarg.S   {srcIndex}");
 
             // Handle ref types like In and Out
             if (targetType.IsByRef)
@@ -160,7 +164,7 @@ namespace Cookie.Emission
                 if (targetType != entryType && targetType != typeof(object))
                 {
                     il.Emit(OpCodes.Castclass, targetType);
-                    DWrite($"Castclass {targetType.Name}");
+                    //DWrite($"Castclass {targetType.Name}");
                 }
             }
         }
@@ -231,14 +235,14 @@ namespace Cookie.Emission
                 il.MarkLabel(labelDone); //<-------------------┘
                 il.Emit(OpCodes.Ldloc, local);
 
-                DWrite($"BrTrue.S  notnull");
-                DWrite($"Ldc.I4    0");
-                DWrite($"Newobj    {underlyingType.Name}");
-                DWrite($"Br.s      done");
-                DWrite($"Label     notnull");
-                DWrite($"Ldarg.S   {srcIndex}");
-                DWrite($"Unbox.Any {underlyingType.Name}");
-                DWrite($"Label     done");
+                //DWrite($"BrTrue.S  notnull");
+                //DWrite($"Ldc.I4    0");
+                //DWrite($"Newobj    {underlyingType.Name}");
+                //DWrite($"Br.s      done");
+                //DWrite($"Label     notnull");
+                //DWrite($"Ldarg.S   {srcIndex}");
+                //DWrite($"Unbox.Any {underlyingType.Name}");
+                //DWrite($"Label     done");
 
             }
         }

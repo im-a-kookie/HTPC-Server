@@ -29,7 +29,7 @@ namespace Cookie.Emission
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
         /// <exception cref="InvalidOperationException"></exception>
-        public static (Type returnType, Type[] parameterTypes) GetDelegateSignature(Type delegateType)
+        public static (Type returnType, Type[] parameterTypes, string[] names) GetDelegateSignature(Type delegateType)
         {
 
             EmissionErrors.EntryNotDelegate.Assert(!typeof(Delegate).IsAssignableFrom(delegateType));
@@ -43,11 +43,18 @@ namespace Cookie.Emission
             var returnType = invokeMethod.ReturnType;
 
             // Get the parameter types
-            var parameterTypes = invokeMethod.GetParameters()
-                                             .Select(p => p.ParameterType)
-                                             .ToArray();
+            var pars = invokeMethod.GetParameters();
 
-            return (returnType, parameterTypes);
+            var parameterTypes = pars
+                .Select(p => p.ParameterType)
+                .ToArray();
+
+            var parameterNames = pars
+                .Select(p => p.Name ?? "")
+                .ToArray();
+
+
+            return (returnType, parameterTypes, parameterNames);
         }
 
 
@@ -58,7 +65,7 @@ namespace Cookie.Emission
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
         /// <exception cref="InvalidOperationException"></exception>
-        public static (Type returnType, Type[] parameterTypes) GetDelegateSignature(Delegate delegateType)
+        public static (Type returnType, Type[] parameterTypes, string[] names) GetDelegateSignature(Delegate delegateType)
         {
             return GetDelegateSignature(delegateType.GetType());
         }
@@ -96,6 +103,7 @@ namespace Cookie.Emission
             return context.ComputeSortedMapping(true);
         }
 
+
         /// <summary>
         /// Simple delegate definition for mapping predication
         /// </summary>
@@ -125,6 +133,8 @@ namespace Cookie.Emission
                     if (context.SolvedEntries[ei]) continue;
                     var e = context.EntryParameters[ei];
                     predicate(context, t, e, ti, ei);
+
+                    if (context.SolvedTargets[ti]) break;
                 }
             }
         }

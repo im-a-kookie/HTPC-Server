@@ -6,8 +6,8 @@ namespace Cookie.Emission
     /// </summary>
     internal struct Mapping
     {
-        internal readonly int src;
-        internal readonly int dst;
+        internal int src;
+        internal int dst;
         internal Mapping(int source, int destination)
         {
             this.src = source; this.dst = destination;

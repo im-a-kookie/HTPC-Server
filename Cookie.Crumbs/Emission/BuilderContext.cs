@@ -1,5 +1,16 @@
-﻿using Cookie.Utils;
+﻿
+/* Unmerged change from project 'Cookie.Crumbs (net9.0-browser)'
+Before:
+using Cookie.Utils;
 using Cookie.Logging;
+using System.Reflection;
+After:
+using Cookie.Logging;
+using Cookie.Utils;
+using System.Reflection;
+*/
+using Cookie.Logging;
+using Cookie.Utils;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
@@ -41,6 +52,10 @@ namespace Cookie.Emission
         /// </summary>
         internal Type[] TargetParams { get; private set; }
 
+        internal string[] EntryNames { get; private set; }
+
+        internal string[] TargetNames { get; private set; }
+
         /// <summary>
         /// The parameter mappings between entry and target parameters
         /// </summary>
@@ -73,19 +88,102 @@ namespace Cookie.Emission
 
             EntryParams = entrySignature.parameterTypes;
             EntryReturn = entrySignature.returnType;
+            EntryNames = entrySignature.names;
 
             // And the target information
             TargetParams = target.GetParameters().Select(x => x.ParameterType).ToArray()!;
+            TargetNames = target.GetParameters().Select(x => x.Name).ToArray()!;
             TargetReturn = target.ReturnType;
 
             // Generate the mappings
             Mappings = ParameterMapping.GenerateSignatureMapping(EntryParams, TargetParams);
+            // Abide mappings by parameter name similarities
+            ApplyNamePrioritization(target);
 
             // Do a quick validation
-
             ValidateStaticTargetParams();
 
+
+
         }
+
+        internal void ApplyNamePrioritization(MethodInfo target)
+        {
+
+            // get every parameter from input and output that has matching type
+            var remainEntry = EntryParams.Select((_, index) => index).ToHashSet();
+            var remainTarget = TargetParams.Select((_, index) => index).ToHashSet();
+
+            while (remainEntry.Count > 0)
+            {
+                var n = remainEntry.First();
+
+                var entryMatch = EntryParams
+                    .Select((_, index) => index)
+                    .Where(x => EntryParams[x] == EntryParams[n]).ToArray();
+
+                var targetMatch = TargetParams
+                    .Select((_, index) => index)
+                    .Where(x => TargetParams[x] == EntryParams[n]).ToArray();
+
+                // now let's calculate the best pairs
+                if (entryMatch.Length > 1 && targetMatch.Length > 0)
+                {
+
+                    // Calculate the likeness of every available pairing
+                    List<(int a, int b, double sim)> pairs = new();
+                    for (int i = 0; i < entryMatch.Count(); i++)
+                    {
+                        int aindex = entryMatch[i];
+                        for (int j = 0; j < targetMatch.Count(); j++)
+                        {
+                            int bindex = targetMatch[j];
+                            // now get the likeness
+                            pairs.Add((aindex, bindex,
+                                JaroWinklerDistance.Distance(
+                                    EntryNames[aindex],
+                                    TargetNames[bindex])));
+
+                        }
+                    }
+
+                    // now sort from shortest to longest distance
+                    pairs.Sort((a, b) => a.sim.CompareTo(b.sim));
+
+                    // and take the best pairs
+                    for (int i = 0; i < pairs.Count; i++)
+                    {
+                        int a = pairs[i].a;
+                        int b = pairs[i].b;
+
+                        // Ensure that we only map parameters that are not mapped yet
+                        if (remainEntry.Remove(a) && remainTarget.Remove(b))
+                        {
+                            for (int j = 0; j < Mappings.Count; j++)
+                            {
+                                if (Mappings[j].dst == b)
+                                {
+                                    Mappings[j] = new(a, Mappings[j].dst);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Now clear these entries from the remainders
+                foreach (var e in entryMatch) remainEntry.Remove(e);
+                foreach (var t in targetMatch) remainTarget.Remove(t);
+
+
+
+            }
+
+
+
+
+        }
+
+
 
         /// <summary>
         /// Gets a qualified target name for error/debugging reasons

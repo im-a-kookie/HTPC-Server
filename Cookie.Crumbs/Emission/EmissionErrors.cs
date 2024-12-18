@@ -1,5 +1,4 @@
 ﻿using Cookie.Logging;
-using Cookie.Utils;
 
 
 namespace Cookie.Emission
@@ -11,6 +10,8 @@ namespace Cookie.Emission
         /// Thrown if a target method does not have a declaring type
         /// </summary>
         public static Error IncorrectTargetType = new("No Declaring Type", "The target method must have a declaring type", (m, e) => new NotSupportedException(m, e));
+
+        public static Error NoVirtualInstance = new("No Virtual Instance", "The target non-static method must have a caller", (m, e) => new NotSupportedException(m, e));
 
         public static Error InvalidDeclarer = new("Invalid Declaring Type", "The target type association must declare the target method", (m, e) => new ArgumentException(m, e));
 
