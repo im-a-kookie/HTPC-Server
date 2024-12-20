@@ -1,4 +1,5 @@
 ﻿using Cookie.Serializers;
+using System.Threading.Tasks.Sources;
 
 namespace Cookie.ContentLibrary
 {
@@ -33,6 +34,12 @@ namespace Cookie.ContentLibrary
         public string Name { get; set; }
 
 
+        public Title()
+        {
+            id = Path.GetRandomFileName();
+            Name = "Default";
+        }
+
         /// <summary>
         /// Instantiate a new title with the given id value
         /// </summary>
@@ -55,7 +62,9 @@ namespace Cookie.ContentLibrary
             dict["N"] = Name;
             dict["I"] = id;
             dict["C"] = Code;
-            dict["E"] = Eps;
+
+            List<MediaFile> episodes = EpisodeList.Values.ToList();
+            dict["E"] = episodes;
         }
 
         public void FromDictionary(IDictionary<string, object> dict)
@@ -63,7 +72,38 @@ namespace Cookie.ContentLibrary
             Name = (string)dict["N"];
             id = (string)dict["I"];
             Code = (int)dict["C"];
-            Eps = (Dictionary<int, Season>)dict["E"];
+
+            var files = (List<MediaFile>)dict["E"];
+            EpisodeList.Clear();
+            int lastSeason = -1;
+            Season? season = null;
+            foreach(var file in files)
+            {
+                if (lastSeason != file.SNo || season == null)
+                {
+                    if (!Eps.TryGetValue(file.SNo, out season))
+                    {
+                        Eps.TryAdd(file.SNo, season = new());
+                    }
+                }
+                season.Eps.Add(file);
+                EpisodeList.Add($"{file.SNo}x{file.EpNo}", file);
+            }
+        }
+
+        public override string ToString()
+        {
+            return Name;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return (obj is Title t && t.Name == this.Name && t.id == this.id);
+        }
+
+        public override int GetHashCode()
+        {
+            return this.Name.GetHashCode() ^ this.id.GetHashCode();
         }
 
         /// <summary>

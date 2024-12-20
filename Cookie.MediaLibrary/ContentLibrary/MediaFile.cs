@@ -1,4 +1,6 @@
 ﻿using Cookie.Serializers;
+using System.Runtime.InteropServices.Marshalling;
+using System.Text;
 
 namespace Cookie.ContentLibrary
 {
@@ -10,35 +12,94 @@ namespace Cookie.ContentLibrary
     /// </summary>
     public class MediaFile : IDictable
     {
+
         /// <summary>
         /// The title that owns this file
         /// </summary>
         public Title? Owner = null;
 
         /// <summary>
-        /// The resolution of this file, or -1 if unknown
+        /// An integer that maps some tags for this media file
         /// </summary>
-        public int Res { get; set; } = -1;
+        public long Data = 0;
 
         /// <summary>
-        /// The codec of this file (e.g x264, HEVC, AV1, etc)
+        /// The resolution of this file, or -1 if unknown
         /// </summary>
-        public string Codec { get; set; } = "";
+        public int Res { 
+            get
+            {
+                return (int)(Data & 0xF);
+            }
+            set
+            {
+                Data = (Data & 0x7FFFFFFFFFFFFFF0) | (long)(value & 0xF);
+            }
+        }
+
+        /// <summary>
+        /// The codec of this file, 0 if unknown
+        /// </summary>
+        public int Codec
+        {
+            get
+            {
+                return (int)(Data & 0xF0) >> 4;
+            }
+            set
+            {
+                Data = (Data & 0x7FFFFFFFFFFFFF0F) | ((long)((value & 0xF) << 4));
+            }
+        }
 
         /// <summary>
         /// The year associated with this file (e.g 2005)
         /// </summary>
-        public int Year { get; set; } = -1;
+        public int Year
+        {
+            get
+            {
+                return 1800 + (int)((Data & 0xFFF00) >> 8);
+            }
+            set
+            {
+                Data = ((Data & 0x7FFFFFFF000FFF) | (((long.Clamp(value, 1800, 2200) - 1800) << 8)));
+            }
+        }
 
         /// <summary>
         /// The season associated with this file
         /// </summary>
-        public int SNo { get; set; } = -1;
+
+        /// <summary>
+        /// The year associated with this file (e.g 2005)
+        /// </summary>
+        public int SNo
+        {
+            get
+            {
+                return (int)((Data & 0xFF00000) >> 20);
+            }
+            set
+            {
+                Data = ((Data & 0xFF00000) | ((long)(value & 0xFF) << 20));
+            }
+        }
 
         /// <summary>
         /// The episode associated with this file
         /// </summary>
-        public int EpNo { get; set; } = -1;
+        public int EpNo
+        {
+            get
+            {
+                return (int)((Data & 0xFFF0000000) >> 28);
+            }
+            set
+            {
+                Data = ((Data & 0xFFF0000000) | ((long)(value & 0xFFF) << 28));
+            }
+        }
 
         /// <summary>
         /// The path to this file, represented as a filepath. If this string is
@@ -57,20 +118,19 @@ namespace Cookie.ContentLibrary
         /// <returns></returns>
         public string DecompressPath(Library library)
         {
+
             string path = Path;
-            int pos = path.IndexOf('<');
+            int pos = path.IndexOf('?');
             while (pos >= 0)
             {
-                int epos = path.IndexOf('>');
-                if (epos > 0)
+                int epos = pos + 1;
+                char next = path[epos];
+                int val = (int)next - 0x0020;
+                if(val < library.abbreviations.Count && val >= 0)
                 {
-                    var substring = path.Substring(pos, pos - epos + 1);
-                    if (library.abbreviations.TryGetValue(substring, out var abbrev))
-                    {
-                        path = path.Replace(substring, abbrev);
-                    }
+                    path = path.Replace($"?{next}", library.abbreviations[val]);
                 }
-                pos = path.IndexOf("<");
+                pos = path.IndexOf('?');
             }
             return path;
         }
@@ -86,24 +146,14 @@ namespace Cookie.ContentLibrary
 
         public void FromDictionary(IDictionary<string, object> dict)
         {
-            Res = (int)dict["R"];
-            Codec = (string)dict["C"];
-            Year = (int)dict["Y"];
-            SNo = (int)dict["S"];
-            EpNo = (int)dict["E"];
+            Data = (long)dict["D"];
             Path = (string)dict["P"];
-
         }
 
         public void ToDictionary(IDictionary<string, object> dict)
         {
-            dict["R"] = Res;
-            dict["C"] = Codec;
-            dict["Y"] = Year;
-            dict["S"] = SNo;
-            dict["E"] = EpNo;
+            dict["D"] = Data;
             dict["P"] = Path;
-            dict["M"] = Remote;
         }
     }
 }
