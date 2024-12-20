@@ -2,6 +2,7 @@
 
 #if !BROWSER
 using Cookie.TCP;
+using System.ComponentModel.Design;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
@@ -38,6 +39,7 @@ namespace Cookie.Connections.API
 
 #if !BROWSER
 
+
         private ConnectionProvider? Server = null;
 
         /// <summary>
@@ -50,6 +52,28 @@ namespace Cookie.Connections.API
             this.Fileserver = provider;
             return this;
         }
+
+
+        public ILoginManager? LoginManager { get; private set; } = null;
+        /// <summary>
+        /// Sets the provider for this controller
+        /// </summary>
+        /// <param name="provider"></param>
+        /// <returns></returns>
+        public Controller<Program> SetLoginManager(ILoginManager loginManager)
+        {
+            this.LoginManager = loginManager;
+            return this;
+        }
+
+        public bool ProvidesWebserver {  get; set; } 
+
+        public Controller<Program> ProvideStandardWebserver()
+        {
+            ProvidesWebserver = true;
+            return this;
+        }
+
 
         /// <summary>
         /// Starts an HTTP server from this controller
@@ -64,11 +88,12 @@ namespace Cookie.Connections.API
                 if (Server != null)
                 {
                     Server = new ConnectionProvider(port, ssl);
-                    Server.OnRequest += async (request, response) =>
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+                    Server.OnRequest += async (request) =>
                     {
-                        ReceiveRequest(request, response);
-                        return;
+                        return ReceiveRequest(request);
                     };
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
                 }
             }
             return this;
@@ -89,14 +114,15 @@ namespace Cookie.Connections.API
         /// The fileserver for this connection
         /// </summary>
         public FileProvider? Fileserver { get; private set; }
-
+        private static HashSet<string> HomePaths = ["/home", "/index", "/home.html", "/index.html", "/"];
         /// <summary>
         /// The internal callback dictionary that maps endpoints to their processors
         /// </summary>
         public Dictionary<string, (object? caller, ApiDelegate callback)> Callbacks = new();
 
-        public Response ReceiveRequest(Request request, Response response)
+        public Response? ReceiveRequest(Request request)
         {
+            Response response = new(request);
 
             string path = request.Target.ToLower();
             if (Callbacks.TryGetValue(path, out var call))
@@ -131,6 +157,7 @@ namespace Cookie.Connections.API
                     request.RequestData,
                     request.Method);
 
+                // now handle the response we received
                 switch (result)
                 {
                     case Response r:
@@ -149,10 +176,26 @@ namespace Cookie.Connections.API
                         HandleString(response, data);
                         break;
                 }
+
+                return response;
+            }
+            else if(ProvidesWebserver)
+            {
+                if (HomePaths.Contains(path))
+                    response.SetFile("wwwroot/index.html");
+                else
+                {
+                    string filepath = "wwwroot" + request.Target;
+                    if (File.Exists("wwwroot/" + path))
+                    {
+                        response.Filepath = filepath;
+                    }
+                }
+                return response;
             }
 
-            // return a response yes
-            return response;
+            // return the response
+            return null;
         }
 
         /// <summary>
@@ -327,8 +370,11 @@ namespace Cookie.Connections.API
                     {
                         var myType = GetType();
                         var myMeth = myType.GetMethod("Discover", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
-                        var myGeny = myMeth.MakeGenericMethod(child);
-                        myGeny.Invoke(this, []);
+                        if (myMeth != null)
+                        {
+                            var myGeny = myMeth.MakeGenericMethod(child);
+                            myGeny.Invoke(this, []);
+                        }
                     }
                     catch
                     {
@@ -352,27 +398,33 @@ namespace Cookie.Connections.API
             if (creator != null) container = (T?)creator!.Invoke(null, null) ?? null;
             if (container == null)
             {
-                // Try to use the program type first
-                var c = t.GetConstructor([typeof(Program)]);
-                if (c != null) container = (T?)c.Invoke([Instance]) ?? null;
-                else
+                var types = new (Type[] types, object?[] pars)[] {
+                    ([typeof(Program)], [Instance]),
+                    ([GetType()], [this]),
+                    ([typeof(ILoginManager)], [LoginManager]),
+                    ([typeof(FileProvider)], [Fileserver]),
+                    ([typeof(FileProvider), typeof(ILoginManager)], [Fileserver, LoginManager]),
+                    ([typeof(ILoginManager), typeof(FileProvider)], [LoginManager, Fileserver]),
+
+                    ([GetType(), typeof(ILoginManager)], [this, LoginManager]),
+                    ([GetType(), typeof(FileProvider)], [this, Fileserver]),
+                    ([GetType(), typeof(FileProvider), typeof(ILoginManager)], [this, Fileserver, LoginManager]),
+                    ([GetType(), typeof(ILoginManager), typeof(FileProvider)], [this, LoginManager, Fileserver]),
+
+                    ([typeof(object)], [Instance]),
+                };
+
+                ConstructorInfo? c = null;
+                foreach(var tt in types)
                 {
-                    // use this controller first
-                    c = t.GetConstructor([typeof(Controller<Program>)]);
-                    if (c != null) container = (T?)c.Invoke([this]) ?? null;
-                    else
-                    {
-                        // use a default object/wildcard
-                        c = t.GetConstructor([typeof(object)]);
-                        if (c != null) container = (T?)c.Invoke([Instance]) ?? null;
-                        else
-                        {
-                            // Or use an empty constructor
-                            c = t.GetConstructor(Type.EmptyTypes);
-                            if (c != null) container = (T?)c.Invoke(null) ?? null;
-                        }
-                    }
+                    c = t.GetConstructor(tt.types);
+                    if (c != null) container = (T?)c.Invoke(tt.pars) ?? null;
+                    if (container != null) return container;
                 }
+
+                // Or use an empty constructor
+                c = t.GetConstructor(Type.EmptyTypes);
+                if (c != null) container = (T?)c.Invoke(null) ?? null;
             }
             return container;
         }

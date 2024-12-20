@@ -21,16 +21,16 @@ namespace Cookie.Connections.API
         /// <param name="user"></param>
         /// <param name="target"></param>
         /// <returns></returns>
-        public delegate bool AccessValidator(FileProvider provider, User user, string target);
+        public delegate bool AccessValidator(FileProvider provider, User? user, string? target);
 
         /// <summary>
         ///  Predicate for validating whether the given user can read from this file provider
         /// </summary>
-        public AccessValidator ValidateRead = (x, y, target) => x.ReadLevel <= y.ReadLevel;
+        public AccessValidator ValidateRead = (x, y, target) => x.ReadLevel <= (y?.ReadLevel ?? 0);
         /// <summary>
         /// Predicate for validating whether the given user can write to this file provider
         /// </summary>
-        public AccessValidator ValidateWrite = (x, y, target) => x.WriteLevel <= y.WriteLevel;
+        public AccessValidator ValidateWrite = (x, y, target) => x.WriteLevel <= (y?.ReadLevel ?? 0);
 
         /// <summary>
         /// A predicate function that transforms requested paths into actual filepaths
@@ -44,8 +44,10 @@ namespace Cookie.Connections.API
         /// <param name="requester"></param>
         /// <param name="path"></param>
         /// <returns></returns>
-        public HttpStatusCode ProvideFile(User requester, ref string? path)
+        public HttpStatusCode ProvideFile(User? requester, ref string? path)
         {
+            path ??= "/";
+
             if (!ValidateRead(this, requester, path))
             {
                 path = null;

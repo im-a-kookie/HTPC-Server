@@ -12,7 +12,7 @@ namespace Cookie.TCP
     public class ConnectionProvider : Addressable, IDisposable
     {
 
-        public delegate Task RequestProcessor(Request request, Response response);
+        public delegate Task<Response?> RequestProcessor(Request request);
 
         /// <summary>
         /// An event called when this connection gets an HTTP request. Note that
@@ -210,14 +210,17 @@ namespace Cookie.TCP
         }
 
 
-        public async Task CallOnRequest(Request request, Response response)
+        public async Task<Response?> CallOnRequest(Request request)
         {
             // Convert the EventHandler into an async action and await it
+            Response? response = null;
             foreach (RequestProcessor handler in OnRequest!.GetInvocationList())
             {
                 // Use Task.Run to handle the async method properly
-                await handler(request, response);
+                response = await handler(request);
+                if (response != null) return response;
             }
+            return null;
         }
 
         /// <summary>

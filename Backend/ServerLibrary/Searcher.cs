@@ -101,7 +101,7 @@ namespace Backend.ServerLibrary
             // If we found a title, then we should try to read an episode thingy
             if (title != null)
             {
-                var se = GetSeasonEpisode(directory);
+                var se = GetSeasonEpisode(directory ?? "/");
                 if (season < 0)
                 {
                     season = se.season;

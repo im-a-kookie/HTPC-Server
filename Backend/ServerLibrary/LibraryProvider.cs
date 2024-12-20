@@ -2,7 +2,7 @@
 using Cookie.ContentLibrary;
 namespace Backend.ServerLibrary
 {
-    internal class LibraryProvider
+    public class LibraryProvider
     {
 
         public FileProvider Provider;
@@ -23,6 +23,13 @@ namespace Backend.ServerLibrary
                 return null;
             };
 
+        }
+
+        public string? GetPath(string key)
+        {
+            string? path = key;
+            var result = Provider.ProvideFile(null, ref path);
+            return path;
         }
 
 

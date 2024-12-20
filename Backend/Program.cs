@@ -1,4 +1,5 @@
 ﻿using Backend.API;
+using Cookie.Connections;
 using Cookie.Connections.API;
 using Cookie.Serializers;
 using Cookie.Serializers.Bytewise;
@@ -22,8 +23,6 @@ namespace Backend.ServerLibrary
             var l = new Login();
 
             b.Discover<Login>(l);
-
-            l.banana = "Things!";
 
             var searcher = new Searcher("E:/");
             var lib = searcher.Enumerate(4);
@@ -53,22 +52,6 @@ namespace Backend.ServerLibrary
             Console.WriteLine("Done!");
 
 
-            var connection = new ConnectionProvider(1234);
-            connection.OnRequest += async (req, res) =>
-            {
-                if (File.Exists("wwwroot" + req.Target))
-                {
-                    res.SetFile("wwwroot" + req.Target);
-                }
-                else if (req.Target == "/")
-                {
-                    res.SetFile("wwwroot/index.html");
-                }
-            };
-            while (true)
-            {
-                Console.ReadLine();
-            }
 
 
 

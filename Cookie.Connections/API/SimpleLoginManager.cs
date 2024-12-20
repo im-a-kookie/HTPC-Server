@@ -6,7 +6,7 @@ using static Cookie.Connections.API.User;
 
 namespace Cookie.Connections.API
 {
-    public class SimpleLoginManager : IDictable
+    public class SimpleLoginManager : IDictable, ILoginManager
     {
 
         public ConcurrentDictionary<string, User> NameUsers = [];
