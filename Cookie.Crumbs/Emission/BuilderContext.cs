@@ -103,10 +103,13 @@ namespace Cookie.Emission
             // Do a quick validation
             ValidateStaticTargetParams();
 
-
-
         }
 
+        /// <summary>
+        /// Applies name prioritization rules to the parameters in this context, such that some vague
+        /// allowance exists for like types (e.g query will typically match to request_query over "json").
+        /// </summary>
+        /// <param name="target"></param>
         internal void ApplyNamePrioritization(MethodInfo target)
         {
 
@@ -173,16 +176,8 @@ namespace Cookie.Emission
                 // Now clear these entries from the remainders
                 foreach (var e in entryMatch) remainEntry.Remove(e);
                 foreach (var t in targetMatch) remainTarget.Remove(t);
-
-
-
             }
-
-
-
-
         }
-
 
 
         /// <summary>
