@@ -21,7 +21,7 @@ namespace Cookie.Connections.API
         {
             if (NameUsers.TryGetValue(username, out var user))
             {
-                if (user.UserHash == CryptoHelper.HashString(password))
+                if (user.UserHash == CryptoHelper.HashSha256(password))
                 {
                     return user;
                 }
@@ -61,7 +61,7 @@ namespace Cookie.Connections.API
             User user = new User();
             user.UserName = username;
             // ensure that passwords are hashed on their way into the user lookup
-            user.UserHash = CryptoHelper.HashString(password);
+            user.UserHash = CryptoHelper.HashSha256(password);
             user.ReadLevel = level;
             if (NameUsers.TryAdd(username, user))
             {
