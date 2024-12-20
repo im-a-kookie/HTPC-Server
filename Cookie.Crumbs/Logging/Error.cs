@@ -1,4 +1,6 @@
 ﻿using Cookie.Addressing;
+using Cookie.Cryptography;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
@@ -10,7 +12,7 @@ namespace Cookie.Logging
 
         public delegate bool Assertion();
 
-        public Address<long> Id;
+        public Address<int> Id;
 
         public Message InnerMessage;
 
@@ -25,6 +27,7 @@ namespace Cookie.Logging
             this.InnerMessage = message;
             this.Generator = inner;
             this.MessagePrepend = prepend;
+            Id = new(CryptoHelper.GetStringHash(message + prepend));
         }
 
         public Error(string error, string? message, ExceptionBuilder generator, string? prepend = null) : this(new Message(error, message ?? ""), generator, prepend) { }
@@ -48,9 +51,9 @@ namespace Cookie.Logging
         /// <param name="details"></param>
         public void AssertNotNull<T>([NotNull] T? test, string? details = null) where T : notnull
         {
-            if (test is null)
+            if (test == null)
             {
-                Throw(details, null);
+                throw Get(details);
             }
         }
 
@@ -63,7 +66,7 @@ namespace Cookie.Logging
         {
             if (assertion())
             {
-                Throw(details, null);
+                throw Get(details);
             }
         }
 
@@ -86,9 +89,9 @@ namespace Cookie.Logging
         /// Asserts the error using the given assertion function
         /// </summary
         /// <param name="details"></param>
-        public bool IsNull<T>([NotNull] T? test, out Exception e, string? details = null)
+        public bool IsNull<T>([NotNullWhen(false)] T? test, out Exception? e, string? details = null)
         {
-            if (test is null)
+            if (test == null)
             {
                 e = Get(details, null);
                 return true;

@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System.Runtime.Versioning;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Cookie.Cryptography
@@ -7,15 +8,25 @@ namespace Cookie.Cryptography
     {
         private const string defaultKey = "43o87yreiuytw346vrte";
 
+        /// <summary>
+        /// Provides a consistent SHA256 hash of the provided input
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         public static string HashString(string input)
         {
             using (SHA256 sha256 = SHA256.Create())
             {
                 byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
-                return Convert.ToHexString(hash);
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
             }
         }
 
+        /// <summary>
+        /// Provides a numeric representation of the SHA hash of the given input
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         public static int GetStringHash(string input)
         {
             using (SHA256 sha256 = SHA256.Create())
@@ -30,6 +41,11 @@ namespace Cookie.Cryptography
             }
         }
 
+        /// <summary>
+        /// Generates a Key and IV for AES unique to this platform
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         public static (byte[] key, byte[] iv) GenerateKeyAndIV(string input)
         {
             // Use SHA256 to hash the input string
@@ -48,11 +64,21 @@ namespace Cookie.Cryptography
             }
         }
 
+        /// <summary>
+        /// Encrypts the given plaintext. Note: Currently returns same data on Browser.
+        /// </summary>
+        /// <param name="plainText"></param>
+        /// <returns></returns>
         public static string Encrypt(string plainText)
         {
             return Convert.ToBase64String(Encrypt(Encoding.UTF8.GetBytes(plainText)).ToArray());
         }
 
+        /// <summary>
+        /// Decrypts the given plaintext. Matches input of <see cref="Encrypt(byte[])"/>
+        /// </summary>
+        /// <param name="plainText"></param>
+        /// <returns></returns>
         public static string Decrpyt(string plainText)
         {
             return Encoding.UTF8.GetString(Decrypt(Convert.FromBase64String(plainText)));
