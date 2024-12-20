@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics.SymbolStore;
 using System.Reflection;
 using System.Text;
 
@@ -112,6 +113,7 @@ namespace Cookie.Serializers.Bytewise
             // Transpose into correct length array
             Types = new Type?[len];
             Types[Hint] = typeof(int);
+            Types[Hlong] = typeof(long);
             Types[Hfloat] = typeof(float);
             Types[Hstring] = typeof(string);
             Types[Hbyte] = typeof(byte[]);
@@ -146,6 +148,14 @@ namespace Cookie.Serializers.Bytewise
             {
                 context.writer!.Write(Hint);
                 context.writer!.Write((int)data);
+            }
+            );
+
+            // int writer
+            Writers[typeof(long)] = (Hlong, (context, data) =>
+            {
+                context.writer!.Write(Hlong);
+                context.writer!.Write((long)data);
             }
             );
 
@@ -221,6 +231,8 @@ namespace Cookie.Serializers.Bytewise
             Readers = new Reader?[max];
 
             Readers[Hint] = (context, code) => context.reader!.ReadInt32();
+            Readers[Hlong] = (context, code) => context.reader!.ReadInt64();
+
             Readers[Hstring] = (context, code) => context.reader!.ReadString();
             Readers[Hfloat] = (context, code) => context.reader!.ReadDouble();
 
@@ -259,14 +271,22 @@ namespace Cookie.Serializers.Bytewise
             Readers[Hlist] = (context, code) =>
             {
                 // get the type of the data
-                var type = context.reader!.ReadChar();
-                var length = context.reader.ReadInt32();
-                Type? t = Types[type];
-                if (t != null)
+                var valCode = context.reader!.ReadChar();
+                Type? valType = Types[valCode];
+
+                if (valCode == Hcoded)
                 {
-                    var tm = mList.MakeGenericMethod(t);
+                    int type = context.reader!.ReadInt32();
+                    valType = context.GetType(type);
+                    valCode = Hobj;
+                }
+
+                var length = context.reader.ReadInt32();
+                if (valType != null)
+                {
+                    var tm = mList.MakeGenericMethod(valType);
                     // TODO cache dynamic delegate from emitter to improve invocation performance
-                    return tm.Invoke(null, [context, length, type]);
+                    return tm.Invoke(null, [context, length, valCode]);
                 }
                 return null;
             };
@@ -277,13 +297,21 @@ namespace Cookie.Serializers.Bytewise
                 // get the type of the data
                 var keyCode = context.reader!.ReadChar();
                 var valCode = context.reader!.ReadChar();
+                Type? valType = Types[valCode];
+                if (valCode == Hcoded)
+                {
+                    int type = context.reader!.ReadInt32();
+                    valType = context.GetType(type);
+                    valCode = Hobj;
+                }
+
                 var length = context.reader.ReadInt32();
                 Type? keyType = Types[keyCode];
-                Type? valType = Types[valCode];
                 if (keyType != null && valType != null)
                 {
                     var tm = mDict.MakeGenericMethod(keyType!, valType!);
-                    return tm.Invoke(null, [context, length, keyCode, valCode]);
+                    var dict = tm.Invoke(null, [context, length, keyCode, valCode]);
+                    return dict;
                 }
                 return null;
             };
@@ -321,7 +349,7 @@ namespace Cookie.Serializers.Bytewise
             for (int i = 0; i < count; i++)
             {
                 var k = context.reader!.ReadChar();
-                var KeyData = valReader(context, k);
+                var KeyData = keyReader(context, k);
                 var v = context.reader!.ReadChar();
                 var ValueData = valReader(context, v);
                 results.TryAdd((K)KeyData!, (V?)ValueData);
@@ -520,6 +548,10 @@ namespace Cookie.Serializers.Bytewise
                     var list = Enumerable.Cast<object>((IEnumerable)data);
                     context.writer!.Write(Hlist);
                     context.writer!.Write(ValWriter.code);
+                    if(ValWriter.code == Hcoded)
+                    {
+                        context.writer!.Write(context.GetCode(t1));
+                    }
                     context.writer!.Write(list.Count());
                     foreach (var val in list)
                     {
@@ -571,6 +603,9 @@ namespace Cookie.Serializers.Bytewise
                             context.writer!.Write(Hdict);
                             context.writer!.Write(KeyWriter.code);
                             context.writer!.Write(ValWriter.code);
+                            if (ValWriter.code == Hcoded) 
+                                context.writer!.Write(context.GetCode(t2));
+                            
                             context.writer!.Write(keys.Length);
                             for (int i = 0; i < keys.Length; i++)
                             {

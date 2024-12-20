@@ -22,6 +22,10 @@
         /// </summary>
         public const char Hint = 'i';
         /// <summary>
+        /// Integer header
+        /// </summary>
+        public const char Hlong = 'w';
+        /// <summary>
         /// Float header
         /// </summary>
         public const char Hfloat = 'f';
