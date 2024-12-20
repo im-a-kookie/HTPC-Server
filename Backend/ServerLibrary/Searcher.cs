@@ -137,7 +137,8 @@ namespace Backend.ServerLibrary
 
 
         /// <summary>
-        ///  Trie to read the episode number out of a given input
+        ///  Trie to read the episode number out of a given input, for files formatted with
+        ///  <para><code>drive:/path/Filler Text - 01 [filler].mkv</code></para>
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
@@ -166,6 +167,11 @@ namespace Backend.ServerLibrary
 
         }
 
+        /// <summary>
+        /// Gests the Season and Episode number out of a given filepath, defaulting to season = -1, episode = -1
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
         public static (int season, int episode) GetSeasonEpisode(string text)
         {
             //@"(?:S|s)(\d{2})(?:\s*E|\s*e)?(\d{2})"
@@ -191,6 +197,13 @@ namespace Backend.ServerLibrary
             return (-1, -1);
         }
 
+        /// <summary>
+        /// Determines if the suffix is titular, e.g Season 04 1080p 2005 etc, this method determines
+        /// if the details after the season number are superfluous
+        /// </summary>
+        /// <param name="show"></param>
+        /// <param name="file"></param>
+        /// <returns></returns>
         public static bool IsSeasonSuffixTitular(Title show, MediaFile file)
         {
             if (!show.id.EndsWith(" season")) return false;
@@ -235,7 +248,6 @@ namespace Backend.ServerLibrary
             }
             return true;
         }
-
 
 
         /// <summary>
@@ -414,7 +426,7 @@ namespace Backend.ServerLibrary
                 if (grabbed[k].EpisodeList.Count <= 0) grabbed.TryRemove(k, out _);
             }
 
-
+            // Now go through each value and simply write details about it for debugging
             foreach (var show in grabbed)
             {
 
@@ -444,10 +456,13 @@ namespace Backend.ServerLibrary
             return library;
         }
 
-
+        /// <summary>
+        /// Processes a file into a dictionary of grabbed series
+        /// </summary>
+        /// <param name="file"></param>
+        /// <param name="grabbed"></param>
         public void ProcessFile(string file, ConcurrentDictionary<string, Title> grabbed)
         {
-
 
             var details = ParseFileName(file);
             if (details != null)
