@@ -1,12 +1,6 @@
 ﻿using Cookie.ContentLibrary;
 using Cookie.Serializers;
 using Cookie.Serializers.Bytewise;
-using Microsoft.VisualStudio.TestPlatform.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Tests.MediaLibrary.Serializing
 {
@@ -65,14 +59,14 @@ namespace Tests.MediaLibrary.Serializing
             if (result.FoundSeries.TryGetValue(title.id, out var resultSeries))
             {
                 int count = 0;
-                foreach(var episode in resultSeries.EpisodeList)
+                foreach (var episode in resultSeries.EpisodeList)
                 {
                     bool has = false;
-                    foreach(var e in mockFiles)
+                    foreach (var e in mockFiles)
                     {
                         if (e.Path == episode.Value.Path)
                         {
-                            Assert.AreEqual(e.Data, episode.Value.Data, "Episode data invalid!"); 
+                            Assert.AreEqual(e.Data, episode.Value.Data, "Episode data invalid!");
                             Assert.AreEqual(e.DecompressPath(result), episode.Value.DecompressPath(result), "Episode data invalid!");
 
                             has = true;
@@ -84,7 +78,7 @@ namespace Tests.MediaLibrary.Serializing
                         Assert.Fail("Failed to load episodes!");
                 }
 
-                if(count != mockFiles.Count)
+                if (count != mockFiles.Count)
                     Assert.Fail("Failed to load episodes!");
 
 

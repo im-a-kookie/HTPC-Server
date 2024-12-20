@@ -1,5 +1,4 @@
 ﻿using Cookie.Cryptography;
-using Cookie.Logging;
 using Cookie.Serializers;
 using Cookie.Utils;
 using System.Collections.Concurrent;
@@ -189,7 +188,7 @@ namespace Cookie.ContentLibrary
                 var suffix = file1.Path.Substring(file1.Path.Length - suffixLength);
 
                 //group the suffixes
-                if(suffix.Length > minimumAbbreviationLength)
+                if (suffix.Length > minimumAbbreviationLength)
                 {
                     int n = strings.IndexOf(suffix);
                     if (n >= 0)
@@ -320,7 +319,7 @@ namespace Cookie.ContentLibrary
                         {
                             currentMatch++;
                         }
-                        if(currentMatch > bestLength)
+                        if (currentMatch > bestLength)
                         {
                             bestLength = currentMatch;
                             best0 = pos0;
@@ -383,7 +382,7 @@ namespace Cookie.ContentLibrary
         public void FromDictionary(IDictionary<string, object> dict)
         {
             abbreviations = (List<string>)dict["D"];
-            
+
             FoundSeries = new ConcurrentDictionary<string, Title>((Dictionary<string, Title>)dict["S"]);
 
 

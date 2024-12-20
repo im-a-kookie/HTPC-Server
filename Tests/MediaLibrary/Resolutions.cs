@@ -1,11 +1,4 @@
-﻿using Cookie.ContentLibrary;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Drawing;
 
 namespace Tests.MediaLibrary
 {
@@ -22,7 +15,7 @@ namespace Tests.MediaLibrary
         public void ValidateResolutionDetails()
         {
             List<string> inputs = ["2160p", "1080p", "720p", "w43vtvgr"];
-            List<string> expectNames = ["2160p","1080p", "720p", "Unknown"];
+            List<string> expectNames = ["2160p", "1080p", "720p", "Unknown"];
             List<int> expectSizes = [2160, 1080, 720, -1];
 
             for (int i = 0; i < inputs.Count; i++)
@@ -69,11 +62,11 @@ namespace Tests.MediaLibrary
                 { new(1280, 528), ["480p", "SD"] }
             };
 
-            foreach(var input in inputs)
+            foreach (var input in inputs)
             {
                 var index = Resolutions.Match(input.Key);
                 var result = Resolutions.GetName(index);
-                CollectionAssert.Contains(input.Value, result, $"Incorrect match: {input.Key}, expected: [{string.Join(". ",input.Value)}], got: {result}");
+                CollectionAssert.Contains(input.Value, result, $"Incorrect match: {input.Key}, expected: [{string.Join(". ", input.Value)}], got: {result}");
             }
 
 

@@ -1,6 +1,4 @@
 ﻿using Cookie.Serializers;
-using System.Runtime.InteropServices.Marshalling;
-using System.Text;
 
 namespace Cookie.ContentLibrary
 {
@@ -26,7 +24,8 @@ namespace Cookie.ContentLibrary
         /// <summary>
         /// The resolution of this file, or -1 if unknown
         /// </summary>
-        public int Res { 
+        public int Res
+        {
             get
             {
                 return (int)(Data & 0xF);
@@ -126,7 +125,7 @@ namespace Cookie.ContentLibrary
                 int epos = pos + 1;
                 char next = path[epos];
                 int val = (int)next - 0x0020;
-                if(val < library.abbreviations.Count && val >= 0)
+                if (val < library.abbreviations.Count && val >= 0)
                 {
                     path = path.Replace($"?{next}", library.abbreviations[val]);
                 }

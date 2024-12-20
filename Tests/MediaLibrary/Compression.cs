@@ -1,11 +1,5 @@
 ﻿using Cookie.ContentLibrary;
 using Microsoft.VisualStudio.TestPlatform.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Tests.MediaLibrary
 {
@@ -46,7 +40,7 @@ namespace Tests.MediaLibrary
                 title.EpisodeList.Add("1x" + i.ToString().PadLeft(2, '0'), file);
 
             }
-            
+
             // now let's mock the series into the library
             testLibrary.FoundSeries.TryAdd("mock title", title);
             testLibrary.CompressPaths();
@@ -64,12 +58,12 @@ namespace Tests.MediaLibrary
 
             ConsoleOutput.Instance.WriteLine($"Compression Complete. Ratio: {Math.Round(ratio * 100) / 100}.", OutputLevel.Information);
 
-            if(ratio > 0.7d)
+            if (ratio > 0.7d)
             {
                 Assert.Fail("Compression is not working appropriately");
             }
 
-            if(ratio > 0.5d)
+            if (ratio > 0.5d)
             {
                 ConsoleOutput.Instance.WriteLine("Warning: Ratio is poor.", OutputLevel.Information);
             }

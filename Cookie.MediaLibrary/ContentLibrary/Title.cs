@@ -1,5 +1,4 @@
 ﻿using Cookie.Serializers;
-using System.Threading.Tasks.Sources;
 
 namespace Cookie.ContentLibrary
 {
@@ -77,7 +76,7 @@ namespace Cookie.ContentLibrary
             EpisodeList.Clear();
             int lastSeason = -1;
             Season? season = null;
-            foreach(var file in files)
+            foreach (var file in files)
             {
                 if (lastSeason != file.SNo || season == null)
                 {

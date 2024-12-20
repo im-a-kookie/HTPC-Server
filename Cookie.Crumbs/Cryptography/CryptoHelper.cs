@@ -1,5 +1,4 @@
-﻿using System.Runtime.Versioning;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace Cookie.Cryptography

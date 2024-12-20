@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Cookie.Connections.API.User;
+﻿using static Cookie.Connections.API.User;
 
 namespace Cookie.Connections.API
 {

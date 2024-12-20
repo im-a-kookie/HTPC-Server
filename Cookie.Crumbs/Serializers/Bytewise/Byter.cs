@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Diagnostics.SymbolStore;
 using System.Reflection;
 using System.Text;
 
@@ -548,7 +547,7 @@ namespace Cookie.Serializers.Bytewise
                     var list = Enumerable.Cast<object>((IEnumerable)data);
                     context.writer!.Write(Hlist);
                     context.writer!.Write(ValWriter.code);
-                    if(ValWriter.code == Hcoded)
+                    if (ValWriter.code == Hcoded)
                     {
                         context.writer!.Write(context.GetCode(t1));
                     }
@@ -603,9 +602,9 @@ namespace Cookie.Serializers.Bytewise
                             context.writer!.Write(Hdict);
                             context.writer!.Write(KeyWriter.code);
                             context.writer!.Write(ValWriter.code);
-                            if (ValWriter.code == Hcoded) 
+                            if (ValWriter.code == Hcoded)
                                 context.writer!.Write(context.GetCode(t2));
-                            
+
                             context.writer!.Write(keys.Length);
                             for (int i = 0; i < keys.Length; i++)
                             {

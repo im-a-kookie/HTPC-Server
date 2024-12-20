@@ -66,7 +66,7 @@ namespace Cookie.Connections.API
             return this;
         }
 
-        public bool ProvidesWebserver {  get; set; } 
+        public bool ProvidesWebserver { get; set; }
 
         public Controller<Program> ProvideStandardWebserver()
         {
@@ -179,7 +179,7 @@ namespace Cookie.Connections.API
 
                 return response;
             }
-            else if(ProvidesWebserver)
+            else if (ProvidesWebserver)
             {
                 if (HomePaths.Contains(path))
                     response.SetFile("wwwroot/index.html");
@@ -415,7 +415,7 @@ namespace Cookie.Connections.API
                 };
 
                 ConstructorInfo? c = null;
-                foreach(var tt in types)
+                foreach (var tt in types)
                 {
                     c = t.GetConstructor(tt.types);
                     if (c != null) container = (T?)c.Invoke(tt.pars) ?? null;

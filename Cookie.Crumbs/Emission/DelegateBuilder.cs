@@ -27,7 +27,7 @@ namespace Cookie.Emission
         internal static DelegateTarget CreateCallbackDelegate<ContainerType, DelegateTarget>(
             MethodInfo target,
             out BuilderContext<ContainerType, DelegateTarget>? context
-        ) 
+        )
         where DelegateTarget : Delegate
         where ContainerType : class
         {
@@ -91,8 +91,8 @@ namespace Cookie.Emission
         /// <typeparam name="T"></typeparam>
         /// <param name="il"></param>
         /// <param name="context"></param>
-        private static void EmitReturnType<M, T>(ILGenerator il, BuilderContext<M, T> context) 
-            where T : Delegate 
+        private static void EmitReturnType<M, T>(ILGenerator il, BuilderContext<M, T> context)
+            where T : Delegate
             where M : class
         {
             // If we do not have a return type from the delegate
