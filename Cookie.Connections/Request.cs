@@ -1,4 +1,5 @@
-﻿using Cookie.Utils;
+﻿using Cookie.Logging;
+using Cookie.Utils;
 using System.Text;
 using System.Text.Json.Nodes;
 using static Cookie.Connections.Response;
@@ -269,7 +270,9 @@ namespace Cookie.Connections
             while (true)
             {
                 var read = await inputStream.ReadLineAsync();
-                if (read?.Trim().Length <= 0) break;
+                Logger.Debug(read);
+                if (read?.Trim().Length <= 0)
+                    break;
                 int pos = read?.IndexOf(':') ?? -1;
                 if (pos > 0)
                 {
@@ -293,8 +296,13 @@ namespace Cookie.Connections
 
             }
 
-            var bodyData = inputStream.ReadToEnd().Trim();
-            RequestData = Encoding.UTF8.GetBytes(bodyData);
+            if (Method != HttpMethod.Get)
+            {
+                var bodyData = inputStream.ReadToEnd().Trim();
+                RequestData = Encoding.UTF8.GetBytes(bodyData);
+            }
+            else RequestData = [];
+
         }
 
         /// <summary>
@@ -316,7 +324,7 @@ namespace Cookie.Connections
 
             // Now cut it
             var min = pos.Min();
-            if (min < int.MaxValue || min > 0)
+            if (min < int.MaxValue && min > 0)
             {
                 Parameters = Target.Substring(min + 1);
                 Target = Target.Remove(min);

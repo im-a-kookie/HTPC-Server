@@ -89,7 +89,7 @@ namespace Cookie.Connections
             SetResult(HttpStatusCode.NotFound);
             string target = "NotFound." + (api ? "json" : "html");
             DataType = MimeHelper.GetFromFile(target)!;
-            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource(target)!);
+            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource("Cookie.Connections.Stubs." + target)!);
             return this;
 
         }
@@ -294,7 +294,7 @@ namespace Cookie.Connections
         private async Task WriteHeaderAsync(Stream stream)
         {
             // write the first part
-            using var w = new StreamWriter(stream);
+            using var w = new StreamWriter(stream, leaveOpen: true);
 
             await w.WriteLineAsync($"HTTP/1.1 {(int)Result} {Result.ToString()}");
 
@@ -338,7 +338,7 @@ namespace Cookie.Connections
         /// Writes the data in this response asynchronously to the stream
         /// </summary>
         /// <param name="stream"></param>
-        public async void WriteDataAsync(Stream stream)
+        public async Task WriteDataAsync(Stream stream)
         {
             // write the header
             await WriteHeaderAsync(stream);
@@ -350,7 +350,8 @@ namespace Cookie.Connections
             {
                 // add the space
                 await stream.WriteAsync(Encoding.UTF8.GetBytes("\r\n"));
-
+                await stream.WriteAsync(ResponseData);
+                
             }
         }
 

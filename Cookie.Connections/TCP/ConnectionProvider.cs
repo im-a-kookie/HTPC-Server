@@ -98,8 +98,6 @@ namespace Cookie.TCP
 
             ClosureAwaitable = ClosureSource.Task;
 
-
-
             // Create the TCP connection
 
             // Configure SSL. If null, ignore later
@@ -109,7 +107,7 @@ namespace Cookie.TCP
             listener = new TcpListener(IPAddress.Any, port);
             listener.Start();
 
-            Console.WriteLine($"TCP Running on port: {port}");
+            Logger.Info($"TCP Running on port: {port}");
             StartListener(); //obligatory start a listener
 
             // Run the maintainer
@@ -218,6 +216,9 @@ namespace Cookie.TCP
             {
                 // Use Task.Run to handle the async method properly
                 response = await handler(request);
+#if DEBUG
+                Logger.Debug("Processed a handler...");
+#endif
                 if (response != null) return response;
             }
             return null;

@@ -93,6 +93,9 @@ namespace Cookie.TCP
 
                     // Await a response
                     var client = connection.listener.AcceptTcpClientAsync(Token);
+#if DEBUG
+                    Logger.Debug("Incoming connection!");
+#endif
                     await client;
                     // We are now counted as a live thread
                     Interlocked.Increment(ref InFlightCalls);
@@ -155,7 +158,6 @@ namespace Cookie.TCP
                     new RemoteCertificateValidationCallback((sender, certificate, chain, sslPolicyErrors) => true),
                     null
                 );
-
                 // Authenticate the server using the SSL certificate.
                 await sslStream.AuthenticateAsServerAsync(connection.SSL, false, SslProtocols.Tls12, true);
                 Logger.Debug($"Established SSL connection on {client.Client.RemoteEndPoint}");
@@ -175,17 +177,29 @@ namespace Cookie.TCP
         /// <param name="client"></param>
         internal async Task Process(TcpClient client, Stream stream)
         {
-
             try
             {
+
+#if DEBUG
+                Logger.Debug("Processing...");
+#endif
                 // get the underlying stream
                 // Establish a request and response
                 var request = new Request();
                 await request.ReadAsync(stream);
-                var response = new Response(request);
+                var response = await connection.CallOnRequest(request);
 
+#if DEBUG
+                Logger.Debug("Got Response...");
+#endif
 
+                if (response == null)
+                {
+                    response = new Response().NotFound();
+                }
 
+                // write the response back
+                await response.WriteDataAsync(stream);
 
             }
             catch (Exception e)
