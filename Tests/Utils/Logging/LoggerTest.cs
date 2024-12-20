@@ -1,7 +1,7 @@
 ﻿using Cookie.Logging;
 using System.Text.RegularExpressions;
 
-namespace Tests.MediaLibrary.Logging
+namespace Tests.Utils.Logging
 {
     [TestClass]
     public class LoggerTest
@@ -48,7 +48,7 @@ namespace Tests.MediaLibrary.Logging
                 // print every message
                 foreach (var e in levels)
                 {
-                    logger.Log($"test <{e.ToString() ?? "void"}>", (LogLevel)e);
+                    logger.Log($"test <{e.ToString() ?? "void"}>", e);
                 }
 
                 container.UnderlyingStream.Seek(0, SeekOrigin.Begin);
@@ -91,9 +91,9 @@ namespace Tests.MediaLibrary.Logging
             Logger.Info("Bananas");
             Logger.ResetTarget();
 
+            // terminate the logger
             logger.Dispose();
 
-            // terminate the logger
             var result = File.ReadAllText(testLogPath);
 
             StringAssert.Contains(result, "[Info]");

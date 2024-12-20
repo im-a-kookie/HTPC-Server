@@ -190,7 +190,12 @@ namespace Cookie.Logging
         }
 
 
+#if DEBUG
+        public static readonly LoggerStream Default = new LoggerStream(LogLevel.Debug);
+#else
         public static readonly LoggerStream Default = new LoggerStream(LogLevel.Info);
+#endif
+
         private static LoggerStream _current = Default;
 
         public static void Log(string message, LogLevel level)

@@ -4,8 +4,11 @@ using Cookie.Serializers.Bytewise;
 
 namespace Tests.MediaLibrary.Serializing
 {
+    /// <summary>
+    /// Asserts serialization of Library, Title, MediaRile, Season
+    /// </summary>
     [TestClass]
-    public class LibrarySerialize
+    public class ContentLibrarySerialization
     {
 
         [TestMethod]
@@ -77,16 +80,10 @@ namespace Tests.MediaLibrary.Serializing
                     if (!has)
                         Assert.Fail("Failed to load episodes!");
                 }
-
                 if (count != mockFiles.Count)
                     Assert.Fail("Failed to load episodes!");
-
-
             }
             else Assert.Fail("Did not find series!");
-
-
         }
-
     }
 }

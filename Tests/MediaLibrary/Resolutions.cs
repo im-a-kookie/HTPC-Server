@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using Cookie.ContentLibrary;
+using System.Drawing;
 
 namespace Tests.MediaLibrary
 {

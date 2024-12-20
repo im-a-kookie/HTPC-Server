@@ -67,7 +67,7 @@ namespace Cookie.ContentLibrary
                 {
                     foreach (var ep in season.Eps)
                     {
-                        targetToFileMap.TryAdd("v_" + CryptoHelper.HashString(ep.Path).Remove(16), ep);
+                        targetToFileMap.TryAdd("v_" + CryptoHelper.HashSha256(ep.Path).Remove(16), ep);
                     }
                 }
             }

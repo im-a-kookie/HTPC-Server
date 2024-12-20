@@ -1,7 +1,7 @@
 ﻿using Cookie.Logging;
 using Cookie.Utils.Exceptions;
 
-namespace Tests.MediaLibrary.Errors
+namespace Tests.Utils.Errors
 {
     [TestClass]
     public class ErrorTesting
