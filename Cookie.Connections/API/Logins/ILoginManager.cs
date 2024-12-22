@@ -1,9 +1,11 @@
-﻿using static Cookie.Connections.API.User;
+﻿using static Cookie.Connections.API.Logins.User;
 
-namespace Cookie.Connections.API
+namespace Cookie.Connections.API.Logins
 {
-    public interface ILoginManager
+    public interface ILoginManager<T>
     {
+
+        public Controller<T>? GetController();
 
         public User? GetUser(string username, string hash);
 
@@ -14,6 +16,8 @@ namespace Cookie.Connections.API
         public void Save();
 
         public void Load();
+
+        public int GetUserCount();
 
 
     }

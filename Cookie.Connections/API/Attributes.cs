@@ -26,7 +26,6 @@
         public Route(string alias) { this.Alias = alias; }
         public Route(string alias, string description) { this.Alias = alias; this.Description = description; }
 
-
     }
 
     [AttributeUsage(AttributeTargets.Method)]

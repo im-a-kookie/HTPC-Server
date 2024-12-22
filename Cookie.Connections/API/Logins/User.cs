@@ -1,24 +1,23 @@
-﻿using Cookie.Serializers;
+﻿using Cookie.Cryptography;
+using Cookie.Serializers;
+using System.Text;
 
-namespace Cookie.Connections.API
+namespace Cookie.Connections.API.Logins
 {
     public class User : IDictable
     {
         private static DateTime BaseTime = new DateTime(2020, 1, 1);
 
-        public enum PermissionLevel
-        {
-            LOW,
-            MEDIUM,
-            HIGH
-        }
-
-        public PermissionLevel ReadLevel { get; set; } = PermissionLevel.LOW;
-        public PermissionLevel WriteLevel { get; set; } = PermissionLevel.LOW;
+        public PermissionLevel Permission { get; set; } = new(Level.MED);
 
         public string UserName { get; set; } = "";
 
         public string UserHash { get; set; } = "";
+
+        public int Incorrectness = 0;
+
+        public DateTime Delay = DateTime.MinValue;
+
 
         /// <summary>
         /// Generates a bas64 API token for this user
@@ -33,7 +32,7 @@ namespace Cookie.Connections.API
             tw.Write(UserHash);
             var dtn = DateTime.UtcNow + expiry;
             tw.Write((int)Math.Ceiling((dtn - BaseTime).TotalMinutes));
-            return Convert.ToBase64String(ms.ToArray());
+            return Convert.ToBase64String(CryptoHelper.Encrypt(ms.ToArray()));
         }
 
         /// <summary>
@@ -44,6 +43,7 @@ namespace Cookie.Connections.API
         public static (string name, string hash)? ReadToken(string token)
         {
             var b = Convert.FromBase64String(token);
+            b = CryptoHelper.Decrypt(b);
             using var ms = new MemoryStream(b);
             using var sr = new BinaryReader(ms);
 
@@ -59,22 +59,22 @@ namespace Cookie.Connections.API
             return null;
         }
 
-
-
         public void ToDictionary(IDictionary<string, object> dict)
         {
             dict["un"] = UserName;
             dict["uh"] = UserHash;
-            dict["r"] = (int)ReadLevel;
-            dict["w"] = (int)WriteLevel;
+            dict["in"] = Incorrectness;
+            dict["d"] = Delay.Ticks;
+            dict["r"] = Permission.ToInt();
         }
 
         public void FromDictionary(IDictionary<string, object> dict)
         {
             UserName = (string)dict["un"];
             UserHash = (string)dict["uh"];
-            ReadLevel = (PermissionLevel)dict["r"];
-            WriteLevel = (PermissionLevel)dict["w"];
+            Incorrectness = (int)dict["in"];
+            Delay = DateTime.FromBinary((long)dict["d"]);
+            Permission = new((int)dict["r"]);
 
         }
 

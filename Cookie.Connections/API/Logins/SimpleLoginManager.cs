@@ -2,14 +2,31 @@
 using Cookie.Serializers;
 using Cookie.Serializers.Bytewise;
 using System.Collections.Concurrent;
-using static Cookie.Connections.API.User;
+using static Cookie.Connections.API.Logins.User;
 
-namespace Cookie.Connections.API
+namespace Cookie.Connections.API.Logins
 {
-    public class SimpleLoginManager : IDictable, ILoginManager
+    public class SimpleLoginManager<T> : IDictable, ILoginManager<T>
     {
 
         public ConcurrentDictionary<string, User> NameUsers = [];
+
+        public Controller<T>? Controller { get; set; }
+
+        public SimpleLoginManager(Controller<T>? controller)
+        {
+            Controller = controller;
+        }
+
+        /// <summary>
+        /// Gets the controller associated with this login manager
+        /// </summary>
+        /// <returns></returns>
+        public Controller<T>? GetController()
+        {
+            return Controller;
+        }
+
 
         /// <summary>
         /// Gets a user from the given username and password hash
@@ -21,7 +38,7 @@ namespace Cookie.Connections.API
         {
             if (NameUsers.TryGetValue(username, out var user))
             {
-                if (user.UserHash == CryptoHelper.HashSha256(password))
+                if (user.UserHash == CryptoHelper.HashSha1(password, 16))
                 {
                     return user;
                 }
@@ -36,14 +53,32 @@ namespace Cookie.Connections.API
         /// <returns></returns>
         public User? GetUser(string token)
         {
-            var details = User.ReadToken(token);
+            var details = ReadToken(token);
             if (details == null) return null;
 
             if (NameUsers.TryGetValue(details.Value.name, out var user))
             {
-                if (user.UserName == details.Value.hash)
+                // don't allow users to log in after multiple failed attempts
+                if (user.Incorrectness >= 3)
                 {
+                    if (DateTime.UtcNow < user.Delay)
+                        return null;
+                }
+
+                // ensure the hash is correct
+                if (user.UserHash == details.Value.hash)
+                {
+                    user.Incorrectness = 0;
                     return user;
+                }
+                else
+                {
+                    // flag the incorrectness and continue
+                    ++user.Incorrectness;
+                    if (user.Incorrectness >= 3)
+                    {
+                        user.Delay = DateTime.UtcNow.AddSeconds(30);
+                    }
                 }
             }
             return null;
@@ -61,14 +96,17 @@ namespace Cookie.Connections.API
             User user = new User();
             user.UserName = username;
             // ensure that passwords are hashed on their way into the user lookup
-            user.UserHash = CryptoHelper.HashSha256(password);
-            user.ReadLevel = level;
+            user.UserHash = CryptoHelper.HashSha1(password, 16);
+            user.Permission = level;
+
             if (NameUsers.TryAdd(username, user))
             {
                 return user;
             }
             return null;
         }
+
+        public int GetUserCount() => NameUsers.Count;
 
         /// <summary>
         /// Saves this login manager to the disk locally
@@ -97,11 +135,11 @@ namespace Cookie.Connections.API
         {
             try
             {
-                using var f = File.OpenWrite("users.dat");
+                using var f = File.OpenRead("users.dat");
                 var dict = Byter.FromBytes(f);
                 if (dict != null)
                 {
-                    this.FromDictionary(dict!);
+                    FromDictionary(dict!);
                 }
 
             }
@@ -110,14 +148,15 @@ namespace Cookie.Connections.API
 
         public void FromDictionary(IDictionary<string, object> dict)
         {
-            dict["users"] = NameUsers;
-        }
-
-        public void ToDictionary(IDictionary<string, object> dict)
-        {
             var things = (Dictionary<string, User>)dict["users"];
             NameUsers.Clear();
             foreach (var t in things) NameUsers.TryAdd(t.Key, t.Value);
         }
+
+        public void ToDictionary(IDictionary<string, object> dict)
+        {
+            dict["users"] = NameUsers;
+        }
+
     }
 }

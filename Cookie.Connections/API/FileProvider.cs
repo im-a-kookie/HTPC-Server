@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Cookie.Connections.API.Logins;
+using System.Net;
 
 namespace Cookie.Connections.API
 {
@@ -7,12 +8,7 @@ namespace Cookie.Connections.API
         /// <summary>
         /// A permission level representing this provider
         /// </summary>
-        public User.PermissionLevel ReadLevel { get; set; } = User.PermissionLevel.LOW;
-
-        /// <summary>
-        /// A permission level representing this provider
-        /// </summary>
-        public User.PermissionLevel WriteLevel { get; set; } = User.PermissionLevel.HIGH;
+        public PermissionLevel Permission { get; set; } = new(Level.MED, Level.HIGH);
 
         /// <summary>
         /// A delegate for validating access to the file provider
@@ -26,11 +22,12 @@ namespace Cookie.Connections.API
         /// <summary>
         ///  Predicate for validating whether the given user can read from this file provider
         /// </summary>
-        public AccessValidator ValidateRead = (x, y, target) => x.ReadLevel <= (y?.ReadLevel ?? 0);
+        public AccessValidator ValidateRead = (x, y, target) => x.Permission.ValidateRead(y?.Permission ?? new(Level.LOW));
+
         /// <summary>
         /// Predicate for validating whether the given user can write to this file provider
         /// </summary>
-        public AccessValidator ValidateWrite = (x, y, target) => x.WriteLevel <= (y?.ReadLevel ?? 0);
+        public AccessValidator ValidateWrite = (x, y, target) => x.Permission.ValidateWrite(y?.Permission ?? new(Level.LOW));
 
         /// <summary>
         /// A predicate function that transforms requested paths into actual filepaths

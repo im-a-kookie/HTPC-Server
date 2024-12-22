@@ -1,4 +1,5 @@
-﻿using Cookie.Logging;
+﻿using Cookie.Connections.API.Logins;
+using Cookie.Logging;
 
 #if !BROWSER
 using Cookie.TCP;
@@ -15,17 +16,28 @@ namespace Cookie.Connections.API
     {
         private static class Errors
         {
+            /// <summary>
+            /// Thrown when given a controller that isn't valid
+            /// </summary>
             public static Error InvalidControllerError = new("Invalid Controller", "The controller requires Endpoint or Controller attributes", (m, e) => new ArgumentException(m, e));
 
+            /// <summary>
+            /// Thrown when given a host that cannot be instantiated
+            /// </summary>
             public static Error NoConstructor = new("Cannot Create Host", "The endpoint class could not be constructed!", (m, e) => new ArgumentException(m, e));
 
         }
 
         private static class Warnings
         {
-
+            /// <summary>
+            /// Warning for when an API container provides no endpoints
+            /// </summary>
             public static Message NoEndpoints = new("No Declared Endpoints", "The class did not declare endpoints!");
 
+            /// <summary>
+            /// Warning for when an API endpoint does not receive any parameters about a request
+            /// </summary>
             public static Message NoRequestParams = new("No Request Parameters", "The method provides no parameters for inspecting the request!");
 
         }
@@ -54,20 +66,27 @@ namespace Cookie.Connections.API
         }
 
 
-        public ILoginManager? LoginManager { get; private set; } = null;
+        public ILoginManager<Program>? LoginManager { get; private set; } = null;
         /// <summary>
         /// Sets the provider for this controller
         /// </summary>
         /// <param name="provider"></param>
         /// <returns></returns>
-        public Controller<Program> SetLoginManager(ILoginManager loginManager)
+        public Controller<Program> SetLoginManager(ILoginManager<Program> loginManager)
         {
             this.LoginManager = loginManager;
             return this;
         }
 
+        /// <summary>
+        /// A boolean indicating whether this controller provides a webserver
+        /// </summary>
         public bool ProvidesWebserver { get; set; }
 
+        /// <summary>
+        /// Configures this controller to provide a webserver
+        /// </summary>
+        /// <returns></returns>
         public Controller<Program> ProvideStandardWebserver()
         {
             ProvidesWebserver = true;
@@ -81,11 +100,11 @@ namespace Cookie.Connections.API
         /// <param name="port"></param>
         /// <param name="ssl"></param>
         /// <returns></returns>
-        public Controller<Program> StartHttp(int port, X509Certificate2 ssl)
+        public Controller<Program> StartHttp(int port, X509Certificate2? ssl = null)
         {
             lock (this)
             {
-                if (Server != null)
+                if (Server == null)
                 {
                     Server = new ConnectionProvider(port, ssl);
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -110,6 +129,16 @@ namespace Cookie.Connections.API
             return;
         }
 
+
+
+        public void ApplyPersistentCookie(Response response, User user)
+        {
+            var cookie = new System.Net.Cookie("LoginToken", user.GenerateToken(TimeSpan.FromDays(100000)));
+            cookie.HttpOnly = true;
+            cookie.Secure = true;
+            response.AddCookie(cookie);
+        }
+
         /// <summary>
         /// The fileserver for this connection
         /// </summary>
@@ -120,9 +149,21 @@ namespace Cookie.Connections.API
         /// </summary>
         public Dictionary<string, (object? caller, ApiDelegate callback)> Callbacks = new();
 
+        /// <summary>
+        /// Internal call for receiving requests from the underlying HTTP server
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         public Response? ReceiveRequest(Request request)
         {
             Response response = new(request);
+            User? user = null;
+
+            // read the user out of this request
+            if (LoginManager != null && request.Cookies.TryGetValue("LoginToken", out var cookie))
+            {
+                user = LoginManager.GetUser(cookie.Value);
+            }
 
             string path = request.Target.ToLower();
             if (Callbacks.TryGetValue(path, out var call))
@@ -151,6 +192,7 @@ namespace Cookie.Connections.API
                     call.caller,
                     request,
                     response,
+                    user,
                     request.Parameters,
                     (doJson) ? body : "",
                     body,
@@ -160,10 +202,11 @@ namespace Cookie.Connections.API
                 // now handle the response we received
                 switch (result)
                 {
+                    // send back the response, if one was returned
                     case Response r:
                         response = r;
                         break;
-
+                    // otherwise use the response we had to set the code
                     case HttpStatusCode code:
                         response.SetResult(code);
                         break;
@@ -171,14 +214,20 @@ namespace Cookie.Connections.API
                     case int code:
                         response.SetResult((HttpStatusCode)code);
                         break;
-
+                    // or we were returned a string, which is probably either json or html
+                    // or a filepath
                     case string data:
                         HandleString(response, data);
+                        break;
+
+                    case FileInfo fileInfo:
+                        response.SetFile(fileInfo.FullName);
                         break;
                 }
 
                 return response;
             }
+            // the API didn't trigger, but we may need to handle the target as a webserver
             else if (ProvidesWebserver)
             {
                 if (HomePaths.Contains(path))
@@ -212,6 +261,7 @@ namespace Cookie.Connections.API
             if (Fileserver != null)
             {
                 var attempt = input;
+                // see if we can provide this target as a file
                 var result = Fileserver.ProvideFile(new(), ref attempt);
                 if (result == HttpStatusCode.OK && File.Exists(attempt))
                 {
@@ -240,9 +290,9 @@ namespace Cookie.Connections.API
         /// <para>Generates delegates into <see cref="Callbacks"/> for invocation through <see cref="ReceiveRequest(Request)"/></para>
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        public void Discover<T>() where T : class
+        public T? Discover<T>() where T : class
         {
-            Discover<T>(null);
+            return Discover<T>(null);
         }
 
         /// <summary>
@@ -252,7 +302,7 @@ namespace Cookie.Connections.API
         /// <para>Generates delegates into <see cref="Callbacks"/> for invocation through <see cref="ReceiveRequest(Request)"/></para>
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        public void Discover<T>(T? container) where T : class
+        public T? Discover<T>(T? container) where T : class
         {
             var t = typeof(T);
 
@@ -282,7 +332,9 @@ namespace Cookie.Connections.API
                     }
                 }
                 // append the name and walk back again
+                
                 name = innerName + "/" + name;
+                
                 tt = tt.DeclaringType;
             }
             // clear bad slashes
@@ -360,7 +412,6 @@ namespace Cookie.Connections.API
 
             }
 
-
             // Now look inside this type for more api calls
             foreach (var child in t.GetNestedTypes() ?? [])
             {
@@ -381,9 +432,9 @@ namespace Cookie.Connections.API
                         //uuuugh
                     }
                 }
-
             }
 
+            return container;
         }
 
         /// <summary>
@@ -401,15 +452,15 @@ namespace Cookie.Connections.API
                 var types = new (Type[] types, object?[] pars)[] {
                     ([typeof(Program)], [Instance]),
                     ([GetType()], [this]),
-                    ([typeof(ILoginManager)], [LoginManager]),
+                    ([typeof(ILoginManager<Program>)], [LoginManager]),
                     ([typeof(FileProvider)], [Fileserver]),
-                    ([typeof(FileProvider), typeof(ILoginManager)], [Fileserver, LoginManager]),
-                    ([typeof(ILoginManager), typeof(FileProvider)], [LoginManager, Fileserver]),
+                    ([typeof(FileProvider), typeof(ILoginManager<Program>)], [Fileserver, LoginManager]),
+                    ([typeof(ILoginManager<Program>), typeof(FileProvider)], [LoginManager, Fileserver]),
 
-                    ([GetType(), typeof(ILoginManager)], [this, LoginManager]),
+                    ([GetType(), typeof(ILoginManager<Program>)], [this, LoginManager]),
                     ([GetType(), typeof(FileProvider)], [this, Fileserver]),
-                    ([GetType(), typeof(FileProvider), typeof(ILoginManager)], [this, Fileserver, LoginManager]),
-                    ([GetType(), typeof(ILoginManager), typeof(FileProvider)], [this, LoginManager, Fileserver]),
+                    ([GetType(), typeof(FileProvider), typeof(ILoginManager<Program>)], [this, Fileserver, LoginManager]),
+                    ([GetType(), typeof(ILoginManager<Program>), typeof(FileProvider)], [this, LoginManager, Fileserver]),
 
                     ([typeof(object)], [Instance]),
                 };
@@ -418,8 +469,10 @@ namespace Cookie.Connections.API
                 foreach (var tt in types)
                 {
                     c = t.GetConstructor(tt.types);
-                    if (c != null) container = (T?)c.Invoke(tt.pars) ?? null;
-                    if (container != null) return container;
+                    if (c != null) 
+                        container = (T?)c.Invoke(tt.pars) ?? null;
+                    if (container != null) 
+                        return container;
                 }
 
                 // Or use an empty constructor
