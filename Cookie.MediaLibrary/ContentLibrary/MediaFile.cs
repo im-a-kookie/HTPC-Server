@@ -19,7 +19,7 @@ namespace Cookie.ContentLibrary
         /// <summary>
         /// An integer that maps some tags for this media file
         /// </summary>
-        public long Data = 0;
+        public long Data { get; set; } = 0;
 
         /// <summary>
         /// The resolution of this file, or -1 if unknown
@@ -32,7 +32,7 @@ namespace Cookie.ContentLibrary
             }
             set
             {
-                Data = (Data & 0x7FFFFFFFFFFFFFF0) | (long)(value & 0xF);
+                Data = (Data & ~0xF) | (long)(value & 0xF);
             }
         }
 
@@ -47,24 +47,11 @@ namespace Cookie.ContentLibrary
             }
             set
             {
-                Data = (Data & 0x7FFFFFFFFFFFFF0F) | ((long)((value & 0xF) << 4));
+                Data = (Data & ~0xF0) | ((long)((value & 0xF) << 4));
             }
         }
 
-        /// <summary>
-        /// The year associated with this file (e.g 2005)
-        /// </summary>
-        public int Year
-        {
-            get
-            {
-                return 1800 + (int)((Data & 0xFFF00) >> 8);
-            }
-            set
-            {
-                Data = ((Data & 0x7FFFFFFF000FFF) | (((long.Clamp(value, 1800, 2200) - 1800) << 8)));
-            }
-        }
+
 
         /// <summary>
         /// The season associated with this file
@@ -77,11 +64,11 @@ namespace Cookie.ContentLibrary
         {
             get
             {
-                return (int)((Data & 0xFF00000) >> 20);
+                return (int)((Data & 0xFF00) >> 8);
             }
             set
             {
-                Data = ((Data & 0xFF00000) | ((long)(value & 0xFF) << 20));
+                Data = ((Data & ~0xFF00) | ((long)(value & 0xFF) << 8));
             }
         }
 
@@ -92,11 +79,26 @@ namespace Cookie.ContentLibrary
         {
             get
             {
-                return (int)((Data & 0xFFF0000000) >> 28);
+                return (int)((Data & 0xFFF0000) >> 16);
             }
             set
             {
-                Data = ((Data & 0xFFF0000000) | ((long)(value & 0xFFF) << 28));
+                Data = ((Data & ~0xFFF0000) | ((long)(value & 0xFFF) << 16));
+            }
+        }
+
+        /// <summary>
+        /// The lookup key for this file in the underlying episode lookup system
+        /// </summary>
+        public int FileLookup
+        {
+            get
+            {
+                return (int)((Data & 0xFFFFF0000000)) >> 28;
+            }
+            set
+            {
+                Data = ((Data & ~0xFFFFF0000000) | ((long)(value & 0xFFFFF) << 28));
             }
         }
 
@@ -108,7 +110,13 @@ namespace Cookie.ContentLibrary
         /// <para>If this is set and the file exists, then it is assumed that
         /// <see cref="Remote"/>, if set, represents an API request key</para>
         /// </summary>
-        public string Path { get; set; } = "";
+        public string Path { get; internal set; } = "";
+
+        public void SetPath(Title? parent, string newPath)
+        {
+            Path = newPath;
+            parent?.Owner?.NotifySeriesUpdate([parent]);
+        }
 
         /// <summary>
         /// Decompresses this path using the given library's decompression scheme

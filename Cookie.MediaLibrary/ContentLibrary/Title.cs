@@ -1,9 +1,12 @@
-﻿using Cookie.Serializers;
+﻿using Cookie.Cryptography;
+using Cookie.Serializers;
+using System.Text.Json;
 
 namespace Cookie.ContentLibrary
 {
     public class Title : IDictable
     {
+        public Library? Owner { get; set; }
 
         /// <summary>
         /// A mapping of episodes in this title. It is expected that the server will provide
@@ -21,22 +24,65 @@ namespace Cookie.ContentLibrary
         /// </summary>
         public int Code = 0;
 
+
+        private string _id;
         /// <summary>
         /// Gets or sets the id for this title. This should be unique.
         /// </summary>
-        public string id { get; set; }
+        public string ID
+        {
+            get { return _id; }
+            set
+            {
+                if (Owner != null)
+                {
+                    lock (Owner)
+                    {
+                        Owner.FoundSeries.TryRemove(_id, out _);
+                        _id = value;
+                        Owner.FoundSeries.TryAdd(_id, this);
+                        Owner.NotifySeriesUpdate([this]);
+                    }
+                }
+                else _id = value;
+            }
+        }
 
+        private string _name;
         /// <summary>
         /// Gets or sets a readable title for this series. This does not
         /// have to be unique.
         /// </summary>
-        public string Name { get; set; }
+        public string Name
+        {
+            get
+            {
+                return _name;
+            }
+            set
+            {
+                if (Owner != null)
+                {
+                    lock (Owner)
+                    {
+                        Owner.NameToSeries.TryRemove(_id, out _);
+                        _name = value;
+                        Owner.NameToSeries.TryAdd(_id, this);
+                        Owner.NotifySeriesUpdate([this]);
+                    }
+                }
+                else _name = value;
+            }
+        }
 
+        public string Link { get; set; } = "";
+
+        public string Description { get; set; } = "";
 
         public Title()
         {
-            id = Path.GetRandomFileName();
-            Name = "Default";
+            _name = "Default";
+            _id = CryptoHelper.HashSha1(Path.GetRandomFileName(), 10);
         }
 
         /// <summary>
@@ -45,8 +91,8 @@ namespace Cookie.ContentLibrary
         /// <param name="id"></param>
         public Title(string id)
         {
-            this.id = id;
-            this.Name = CapitalizeTitle(id);
+            this._name = CapitalizeTitle(id);
+            this._id = CryptoHelper.HashSha1(Name, 10);
         }
 
         /// <summary>
@@ -59,18 +105,24 @@ namespace Cookie.ContentLibrary
         public void ToDictionary(IDictionary<string, object> dict)
         {
             dict["N"] = Name;
-            dict["I"] = id;
+            dict["I"] = ID;
             dict["C"] = Code;
-
             List<MediaFile> episodes = EpisodeList.Values.ToList();
             dict["E"] = episodes;
+
+            dict["D"] = Description;
+            dict["L"] = Link;
+
         }
 
         public void FromDictionary(IDictionary<string, object> dict)
         {
             Name = (string)dict["N"];
-            id = (string)dict["I"];
+            ID = (string)dict["I"];
             Code = (int)dict["C"];
+
+            Description = (string)dict["D"];
+            Link = (string)dict["L"];
 
             var files = (List<MediaFile>)dict["E"];
             EpisodeList.Clear();
@@ -97,22 +149,14 @@ namespace Cookie.ContentLibrary
 
         public override bool Equals(object? obj)
         {
-            return (obj is Title t && t.Name == this.Name && t.id == this.id);
+            return (obj is Title t && t.Name == this.Name && t.ID == this.ID);
         }
 
         public override int GetHashCode()
         {
-            return this.Name.GetHashCode() ^ this.id.GetHashCode();
+            return this.Name.GetHashCode() ^ this.ID.GetHashCode();
         }
 
-        /// <summary>
-        /// Converts this series object into a json that describes
-        /// the entire inner layout.
-        /// 
-        /// <para>It is expected that <see cref="FromJson(string)"/> can reconstruct
-        /// this instance from the return of this method.</para>
-        /// </summary>
-        /// <returns></returns>
 
         /*
          * 
@@ -120,6 +164,11 @@ namespace Cookie.ContentLibrary
          *
          */
 
+        /// <summary>
+        /// Capitalizes the words in a title with exclusions for words that are traditionally not capitalized.
+        /// </summary>
+        /// <param name="title"></param>
+        /// <returns></returns>
         private static string CapitalizeTitle(string title)
         {
             // List of small words that should not be capitalized unless they're the first or last word
@@ -160,6 +209,61 @@ namespace Cookie.ContentLibrary
             // Capitalize the first letter and make the rest lowercase
             return char.ToUpper(word[0]) + word.Substring(1).ToLower();
         }
+
+        public class Packer
+        {
+            /// <summary>
+            /// The name of this series
+            /// </summary>
+            public string Name { get; set; }
+            /// <summary>
+            /// The description of this series
+            /// </summary>
+            public string Desc { get; set; }
+            /// <summary>
+            /// The link to this series
+            /// </summary>
+            public string Link { get; set; }
+            /// <summary>
+            /// The seasons in this series
+            /// </summary>
+            public int Seasons { get; set; }
+            /// <summary>
+            /// The total number of episodes in this series
+            /// </summary>
+            public int Eps { get; set; }
+            /// <summary>
+            /// A list of the episodes in this series by their string lookup key thingy
+            /// </summary>
+            public Dictionary<string, int> Episodes { get; set; }
+
+            public Packer(Title t)
+            {
+                Name = t.Name;
+                Desc = t.Description;
+                Link = t.Link;
+                Seasons = t.Eps.Count;
+                Eps = t.EpisodeList.Count;
+                Episodes = new Dictionary<string, int>();
+                foreach (var ep in t.EpisodeList)
+                {
+                    Episodes.Add(ep.Key, ep.Value.FileLookup);
+                }
+            }
+
+            // Serialize to JSON
+            public string Serialize()
+            {
+                return JsonSerializer.Serialize(this);
+            }
+
+            // Deserialize from JSON
+            public static Packer? Deserialize(string json)
+            {
+                return JsonSerializer.Deserialize<Packer>(json);
+            }
+        }
+
 
 
     }

@@ -1,5 +1,6 @@
 ﻿using Cookie.Cryptography;
 using Cookie.Serializers;
+using Cookie.Serializers.Bytewise;
 using Cookie.Utils;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -16,11 +17,25 @@ namespace Cookie.ContentLibrary
         /// </summary>
         public event SeriesUpdated? OnSeriesUpdate;
 
+        public void NotifySeriesUpdate(List<Title> title)
+        {
+            OnSeriesUpdate?.Invoke(this, title);
+        }
+
 
         /// <summary>
         ///  An event triggered whenever a series is updated, providing the affected library and a list of affected titles.
         /// </summary>
         public event SeriesUpdated? OnSeriesDeleted;
+        public void NotifySeriesDeleted(List<Title> title)
+        {
+            OnSeriesDeleted?.Invoke(this, title);
+        }
+
+        /// <summary>
+        /// The root path for this dictionary
+        /// </summary>
+        public string RootPath = "";
 
         /// <summary>
         /// An enumerable lookup of all series that have been found by this series library
@@ -28,17 +43,85 @@ namespace Cookie.ContentLibrary
         public ConcurrentDictionary<string, Title> FoundSeries = [];
 
         /// <summary>
+        /// A secondary mapping of file names to series information
+        /// </summary>
+        public ConcurrentDictionary<string, Title> NameToSeries = [];
+
+        /// <summary>
         /// An abbreviation lookup that maps long strings to much shorter strings for
         /// compression purposes
         /// </summary>
-
         public List<string> abbreviations = [];
 
         /// <summary>
         /// A mapping of file targets to their actual media files
         /// </summary>
-        public Dictionary<string, MediaFile> targetToFileMap = [];
+        public Dictionary<int, MediaFile> targetToFileMap = [];
 
+        /// <summary>
+        /// Creates a new library in the given root path
+        /// </summary>
+        /// <param name="RootPath"></param>
+        public Library(string RootPath)
+        {
+            this.RootPath = RootPath;
+
+            //Directory.CreateDirectory(RootPath + "/__library_cache");
+            //Directory.CreateDirectory(RootPath + "/__library_cache/__covers");
+
+            // updates always trigger immediate writeback to the cache
+            OnSeriesUpdate += (x, l) =>
+            {
+                Directory.CreateDirectory(RootPath + "/__library_cache");
+                lock (this)
+                {
+                    foreach (var title in l)
+                    {
+                        WriteTitle(title);
+                    }
+                }
+            };
+
+            try
+            {
+                using var file = File.OpenRead(RootPath + "/__library_cache/__library.dat");
+                var dict = Byter.FromBytes(file);
+                if(dict != null)
+                {
+                    this.FromDictionary(dict!);
+                }
+
+                // now see if we can load the series
+                foreach (var datfile in Directory.EnumerateFiles(RootPath + "/__library_cache", "*.dat", SearchOption.TopDirectoryOnly))
+                {
+                    var filename = Path.GetFileName(datfile);
+                    if (filename.StartsWith("__")) continue;
+
+                    try
+                    {
+                        using var data = File.OpenRead(datfile);
+                        dict = Byter.FromBytes(data);
+                        var title = new Title();
+                        if (dict != null)
+                        {
+                            title.FromDictionary(dict!);
+                            this.FoundSeries.TryAdd(title.ID, title);
+                            this.NameToSeries.TryAdd(title.Name, title);
+                            title.Owner = this;
+                        }
+
+                    }
+                    catch { }
+
+                }
+
+                // now refresh the file mappings
+                RefreshTargetFileMaps();
+
+            }
+            catch { }
+
+        }
 
         /// <summary>
         /// Cleans the title
@@ -61,19 +144,77 @@ namespace Cookie.ContentLibrary
         public void RefreshTargetFileMaps()
         {
             targetToFileMap.Clear();
+            NameToSeries.Clear();
+            Random r = new();
             foreach (var title in FoundSeries.Values)
             {
+                title.Owner = this;
+                NameToSeries.TryAdd(title.Name, title);
+
                 foreach (var season in title.Eps.Values)
                 {
                     foreach (var ep in season.Eps)
                     {
-                        targetToFileMap.TryAdd("v_" + CryptoHelper.HashSha256(ep.Path).Remove(16), ep);
+                        ep.FileLookup = targetToFileMap.Count ^ 0x2EF7B;
+                        targetToFileMap.TryAdd(ep.FileLookup, ep);
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Stores this entire library to the library cache
+        /// </summary>
+        public void StoreCache()
+        {
+            Directory.CreateDirectory(RootPath + "/__library_cache");
+            Directory.CreateDirectory(RootPath + "/__library_cache/__covers");
 
+            lock (this)
+            {
+                foreach (var f in FoundSeries.Values)
+                {
+                    WriteTitle(f);
+                }
+            }            
+        }
+
+        /// <summary>
+        /// Saves a title to the disk
+        /// </summary>
+        /// <param name="title"></param>
+        public void WriteTitle(Title title)
+        {
+            try
+            {
+                lock (title)
+                {
+                    Directory.CreateDirectory(RootPath + "/__library_cache");
+                    File.Delete($"{RootPath}/__library_cache/{title.ID}.dat");
+
+                    using var file = File.OpenWrite($"{RootPath}/__library_cache/{title.ID}.dat");
+                    Byter.ToBytes(file, ((IDictable)title).MakeDictionary());
+                }
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Saves this dictionary to the disk
+        /// </summary>
+        public void Save()
+        {
+            lock (this)
+            {
+                try
+                {
+                    File.Delete(RootPath + "/__library_cache/__library.dat");
+                    using var f = File.OpenWrite(RootPath + "/__library_cache/__library.dat");
+                    Byter.ToBytes(f, ((IDictable)this).MakeDictionary());
+                }
+                catch { }
+            }
+        }
 
         private class CompressionBundle
         {
@@ -261,7 +402,16 @@ namespace Cookie.ContentLibrary
                 }
             }
         }
-
+        
+        /// <summary>
+        /// Condenses the string collection in such a way that the alike-pairs of strings are merged
+        /// based on their longest similar substrings.
+        /// </summary>
+        /// <param name="strings"></param>
+        /// <param name="affectedFiles"></param>
+        /// <param name="depth"></param>
+        /// <param name="minLength"></param>
+        /// <returns></returns>
         private List<int> OptimizeStrings(ref List<string> strings, ref List<HashSet<MediaFile>> affectedFiles, int depth, int minLength)
         {
 
@@ -290,8 +440,6 @@ namespace Cookie.ContentLibrary
             {
                 saves.Add(strings[i].Length * affectedFiles[i].Count);
             }
-
-
 
             // we assume the strings are in a natural sort order
             // So we can just check each string and see if they can be merged with small changes
@@ -359,7 +507,6 @@ namespace Cookie.ContentLibrary
 
             // Now we will sort this again
 
-
             // Now let's sort the collection according to the saving value
             // Can envisage as saves.Select((x, value) => (x, value)).OrderBy(...).Select(...)
             // But the Linq is slower
@@ -371,21 +518,28 @@ namespace Cookie.ContentLibrary
 
         }
 
-
         public void ToDictionary(IDictionary<string, object> dict)
         {
+            dict["P"] = RootPath;
             dict["D"] = abbreviations;
-            dict["S"] = FoundSeries.ToDictionary();
-
         }
 
+        public Dictionary<string, object> MakeFullDictionary()
+        {
+            var dict = ((IDictable)this).MakeDictionary();
+            dict["S"] = FoundSeries;
+            return dict;
+        }
+        
         public void FromDictionary(IDictionary<string, object> dict)
         {
+            RootPath = (string)dict["P"];
             abbreviations = (List<string>)dict["D"];
-
-            FoundSeries = new ConcurrentDictionary<string, Title>((Dictionary<string, Title>)dict["S"]);
-
-
+            if(dict.TryGetValue("S", out var series) && series is Dictionary<string, Title> result)
+            {
+                FoundSeries = new ConcurrentDictionary<string, Title>(result);
+                RefreshTargetFileMaps();
+            }
         }
     }
 }
