@@ -16,9 +16,14 @@ namespace Backend.ServerLibrary
             Provider = new();
             Provider.PathTransformer = (x) =>
             {
-                if (ProvidedLibrary.targetToFileMap.TryGetValue(x, out var episode))
+                int n = -1;
+                if (x.StartsWith("v_")) x = x.Substring(2);
+                if (int.TryParse(x, out n))
                 {
-                    return episode.DecompressPath(ProvidedLibrary);
+                    if (ProvidedLibrary.targetToFileMap.TryGetValue(n, out var episode))
+                    {
+                        return episode.DecompressPath(ProvidedLibrary);
+                    }
                 }
                 return null;
             };

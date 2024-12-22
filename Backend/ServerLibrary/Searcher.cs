@@ -206,17 +206,17 @@ namespace Backend.ServerLibrary
         /// <returns></returns>
         public static bool IsSeasonSuffixTitular(Title show, MediaFile file)
         {
-            if (!show.id.EndsWith(" season")) return false;
+            if (!show.ID.EndsWith(" season")) return false;
 
             string _path = file.Path;
             _path = Library.CleanTitle(_path);
 
             // now find the title/season body component of the show id in the path
-            int n = _path.IndexOf($"{show.id}");
+            int n = _path.IndexOf($"{show.ID}");
 
             if (n > 0)
             {
-                n += show.id.Length + 1;
+                n += show.ID.Length + 1;
                 if (n < _path.Length)
                 {
                     if (_path[n - 1] == ' ')
@@ -250,11 +250,6 @@ namespace Backend.ServerLibrary
         }
 
 
-        /// <summary>
-        /// Enumeration of series that have been discovered by the Searcher
-        /// </summary>
-        private Library library = new();
-
         public string Root = "";
 
         /// <summary>
@@ -271,7 +266,7 @@ namespace Backend.ServerLibrary
         /// Enumerates this searcher from the given parent directory
         /// </summary>
         /// <param name="parentDirectory"></param>
-        public Library Enumerate(int threads = 1)
+        public Library Enumerate(int threads = 1, Library? input = null)
         {
             var s = Stopwatch.StartNew();
 
@@ -389,9 +384,9 @@ namespace Backend.ServerLibrary
 
             foreach (var show in grabbed)
             {
-                if (show.Value.id.EndsWith(" season"))
+                if (show.Value.ID.EndsWith(" season"))
                 {
-                    string prospective = show.Value.id.Remove(show.Value.id.Length - 7);
+                    string prospective = show.Value.ID.Remove(show.Value.ID.Length - 7);
                     List<string> removed = [];
 
                     foreach (var f in show.Value.EpisodeList)
@@ -451,9 +446,15 @@ namespace Backend.ServerLibrary
             Console.WriteLine("Searched Directory. Time: " + s.ElapsedMilliseconds + "ms");
 
             // Now set up the library and bazoonga
-            Library library = new();
-            library.FoundSeries = grabbed;
-            return library;
+            if(input == null) input = new(Root);
+
+            // now consolidate everything
+
+            input.FoundSeries = grabbed;
+            // now compress and return details
+            input.CompressPaths();
+            input.RefreshTargetFileMaps();
+            return input;
         }
 
         /// <summary>
@@ -476,8 +477,9 @@ namespace Backend.ServerLibrary
                 {
                     SNo = n.Season ?? -1,
                     EpNo = n.Episode ?? -1,
-                    Path = file
                 };
+
+                f.SetPath(t, file);
 
                 lock (t)
                 {
