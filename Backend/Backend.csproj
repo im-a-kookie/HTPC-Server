@@ -8,6 +8,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Config\Encryption.json" />
+    <None Remove="Config\ServerSettings.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Config\AdminLogin.json" />
+    <EmbeddedResource Include="Config\Encryption.json" />
+    <Resource Include="Config\ServerSettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Cookie.Connections\Cookie.Connections.csproj" />
     <ProjectReference Include="..\Cookie.Crumbs\Cookie.Crumbs.csproj" />
     <ProjectReference Include="..\Cookie.MediaLibrary\Cookie.MediaLibrary.csproj" />
