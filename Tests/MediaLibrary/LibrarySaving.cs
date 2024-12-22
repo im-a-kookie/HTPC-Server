@@ -1,14 +1,14 @@
 ﻿using Cookie.ContentLibrary;
-using Cookie.Serializers;
-using Cookie.Serializers.Bytewise;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace Tests.MediaLibrary.Serializing
+namespace Tests.MediaLibrary
 {
-    /// <summary>
-    /// Asserts serialization of Library, Title, MediaRile, Season
-    /// </summary>
     [TestClass]
-    public class ContentLibrarySerialization
+    public class LibrarySaving
     {
 
         [TestMethod]
@@ -24,7 +24,6 @@ namespace Tests.MediaLibrary.Serializing
             Library testLibrary = new Library("mock_library");
 
             testLibrary.OnSeriesUpdate += (x, y) => didNotify = true;
-
 
             // set up some values here
             string directory = @"C:\Movies\has a long messy prefix with random junk";
@@ -48,7 +47,7 @@ namespace Tests.MediaLibrary.Serializing
                 MediaFile file = new MediaFile();
                 file.SNo = 1;
                 file.EpNo = i;
-                file.SetPath(null, $"{directory}\\{name}{i.ToString().PadLeft(2, '0')} {suffix}.mkv");
+                file.SetPath(title, $"{directory}\\{name}{i.ToString().PadLeft(2, '0')} {suffix}.mkv");
                 realPaths.Add(file.Path);
                 mockFiles.Add(file);
                 season.Eps.Add(file);
@@ -58,52 +57,47 @@ namespace Tests.MediaLibrary.Serializing
 
             }
 
+            Assert.IsTrue(didNotify, "The series update event is not triggered!");
+
             // Now let's complete the construction
             testLibrary.CompressPaths();
             testLibrary.RefreshTargetFileMaps();
+            testLibrary.Save();
+            testLibrary.StoreCache();
 
-            // write it to a stream
-            using MemoryStream output = new MemoryStream();
-            Byter.ToBytes(output, testLibrary.MakeFullDictionary());
-            output.Seek(0, SeekOrigin.Begin);
+            var result = new Library(testLibrary.RootPath);
 
-            // now read it back from the stream
-            var resultDictionary = Byter.FromBytes(output);
-            Assert.IsNotNull(resultDictionary, "The deserialization was null!");
-            Library result = new("mock_library");
-            result.FromDictionary(resultDictionary!);
-
-            if (result.FoundSeries.TryGetValue(title.ID, out var resultSeries))
+            if (result.FoundSeries.TryGetValue(title.ID, out var resultTitle))
             {
-                int count = 0;
-                foreach (var episode in resultSeries.EpisodeList)
+                Assert.AreEqual(resultTitle, title, "The stored title does not match!");
+
+                foreach (var ep2 in mockFiles)
                 {
                     bool has = false;
-                    foreach (var e in mockFiles)
+                    foreach (var ep1 in resultTitle.EpisodeList)
                     {
-                        if (e.Path == episode.Value.Path)
+                        if (ep1.Value.Path == ep2.Path &&
+                            ep1.Value.EpNo == ep2.EpNo &&
+                            ep1.Value.SNo == ep2.SNo)
                         {
-                            Assert.AreEqual(e.Data, episode.Value.Data, "Episode data invalid!");
-                            Assert.AreEqual(e.DecompressPath(result), episode.Value.DecompressPath(result), "Episode data invalid!");
-
                             has = true;
-                            ++count;
                             break;
                         }
                     }
-                    if (!has)
-                        Assert.Fail("Failed to load episodes!");
+                    Assert.IsTrue(has, "Did not find episode " + ep2.SNo + "x" + ep2.EpNo);
                 }
-                if (count != mockFiles.Count)
-                    Assert.Fail("Failed to load episodes!");
             }
-            else Assert.Fail("Did not find series!");
+            else Assert.Fail("The series is missing!");
 
-            if(Directory.Exists("mock_library"))
+            if (result.NameToSeries.TryGetValue(title.Name, out resultTitle))
             {
-                Assert.Fail("The library should not write to disk without explicit instruction!");
+                Assert.AreEqual(title, resultTitle, "The name mapped series does not match!");
             }
+            else Assert.Fail("The series is not mapped by name!");
+
+
 
         }
+
     }
 }

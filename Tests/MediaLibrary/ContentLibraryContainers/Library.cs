@@ -13,13 +13,13 @@ namespace Tests.MediaLibrary.ContetnLibraryContainers
         [TestMethod]
         public void AddTitleTests()
         {
-            Library l = new Library();
+            Library l = new Library("C:\\");
 
             Title t = new Title("sample");
 
-            l.FoundSeries.TryAdd(t.id, t);
+            l.FoundSeries.TryAdd(t.ID, t);
 
-            if(!l.FoundSeries.TryGetValue(t.id, out var result) || result != t)
+            if(!l.FoundSeries.TryGetValue(t.ID, out var result) || result != t)
             {
                 Assert.Fail("Series not added correctly");
             }

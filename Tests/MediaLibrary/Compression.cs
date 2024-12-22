@@ -11,7 +11,7 @@ namespace Tests.MediaLibrary
         [TestMethod]
         public void TestCompression()
         {
-            Library testLibrary = new Library();
+            Library testLibrary = new Library("C:\\");
 
             // set up some values here
             string directory = @"C:\Movies\has a long messy prefix with random junk";
@@ -31,7 +31,7 @@ namespace Tests.MediaLibrary
                 MediaFile file = new MediaFile();
                 file.SNo = 1;
                 file.EpNo = i;
-                file.Path = $"{directory}\\{name}{i.ToString().PadLeft(2, '0')} {suffix}.mkv";
+                file.SetPath(title, $"{directory}\\{name}{i.ToString().PadLeft(2, '0')} {suffix}.mkv");
                 realPaths.Add(file.Path);
                 mockFiles.Add(file);
                 season.Eps.Add(file);
