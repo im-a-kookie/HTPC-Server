@@ -1,11 +1,36 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Cookie.Cryptography
 {
     public class CryptoHelper
     {
-        private const string defaultKey = "43o87yreiuytw346vrte";
+
+        public static Func<string> DefaultKey = () => "43o87yreiuytw346vrte";
+
+        public static string HashHMAC(string key, string input)
+        {
+            // Convert key and data to byte arrays
+            byte[] keyBytes = Encoding.UTF8.GetBytes(key);
+            byte[] dataBytes = Encoding.UTF8.GetBytes(input);
+
+            // Create an HMACSHA256 instance with the key
+            using var hmac = new HMACSHA256(keyBytes);
+
+            // Compute the HMAC for the data
+            byte[] hashBytes = hmac.ComputeHash(dataBytes);
+
+            // Convert the hash to a Base64 string
+            return Convert.ToBase64String(hashBytes);
+        }
+
+
+        public static bool VerifyHMAC(string key, string input, string given)
+        {
+            var test = HashHMAC(key, input);
+            return test == given;
+        }
 
         /// <summary>
         /// Hashes a string with the given input
@@ -181,7 +206,7 @@ namespace Cookie.Cryptography
         /// </summary>
         /// <param name="plainText"></param>
         /// <returns></returns>
-        public static string Decrpyt(string plainText)
+        public static string Decrypt(string plainText)
         {
             return Encoding.UTF8.GetString(Decrypt(Convert.FromBase64String(plainText)));
         }
@@ -196,7 +221,7 @@ namespace Cookie.Cryptography
 #if !BROWSER
             using (Aes aes = Aes.Create())
             {
-                (aes.Key, aes.IV) = GenerateKeyAndIV("43o87yreiuytw346vrte");
+                (aes.Key, aes.IV) = GenerateKeyAndIV(DefaultKey());
 
                 using (MemoryStream memoryStream = new MemoryStream())
                 using (CryptoStream cryptoStream = new CryptoStream(memoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
@@ -221,7 +246,7 @@ namespace Cookie.Cryptography
 #if !BROWSER
             using (Aes aes = Aes.Create())
             {
-                (aes.Key, aes.IV) = GenerateKeyAndIV("43o87yreiuytw346vrte");
+                (aes.Key, aes.IV) = GenerateKeyAndIV(DefaultKey());
 
                 using (MemoryStream memoryStream = new MemoryStream())
                 using (CryptoStream cryptoStream = new CryptoStream(memoryStream, aes.CreateDecryptor(), CryptoStreamMode.Write))
