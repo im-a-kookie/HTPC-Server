@@ -105,7 +105,7 @@ namespace Cookie.TCP
 
             // Start the listener system-wide.
             listener = new TcpListener(IPAddress.Any, port);
-            listener.Start();
+            listener.Start(25);
 
             Logger.Info($"TCP Running on port: {port}");
             StartListener(); //obligatory start a listener

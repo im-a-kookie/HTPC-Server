@@ -6,6 +6,7 @@ namespace Cookie.Connections
 {
     public class Response
     {
+        static string STUB = "Cookie.Connections.Stubs.";
 
         /// <summary>
         /// A simple struct for the start/end of file content
@@ -89,7 +90,7 @@ namespace Cookie.Connections
             SetResult(HttpStatusCode.NotFound);
             string target = "NotFound." + (api ? "json" : "html");
             DataType = MimeHelper.GetFromFile(target)!;
-            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource("Cookie.Connections.Stubs." + target)!);
+            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource(STUB + target)!);
             return this;
 
         }
@@ -106,7 +107,7 @@ namespace Cookie.Connections
             SetResult(HttpStatusCode.BadRequest);
             string target = "BadRequest." + (api ? "json" : "html");
             DataType = MimeHelper.GetFromFile(target)!;
-            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource(target)!);
+            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource(STUB + target)!);
             return this;
 
         }
@@ -123,7 +124,7 @@ namespace Cookie.Connections
             SetResult(HttpStatusCode.Unauthorized);
             string target = "NotAuthorized." + (api ? "json" : "html");
             DataType = MimeHelper.GetFromFile(target)!;
-            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource(target)!);
+            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource(STUB + target)!);
             return this;
 
         }
@@ -140,7 +141,7 @@ namespace Cookie.Connections
             string resource = "Redirect.html";
             DataType = MimeHelper.GetFromFile(resource)!;
             Headers["Location"] = target;
-            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource(target)!);
+            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource(STUB + target)!);
             return this;
 
         }
@@ -259,7 +260,7 @@ namespace Cookie.Connections
 
             foreach (var cookie in Cookies)
             {
-                sb.AppendLine($"Cookie: " + cookie.Value.ToString());
+                sb.AppendLine($"Set-Cookie: " + cookie.Value.ToString());
             }
 
             return sb.ToString();

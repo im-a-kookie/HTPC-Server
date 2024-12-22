@@ -10,9 +10,14 @@ namespace Cookie.Connections
     {
 
         /// <summary>
-        /// The headers in this response
+        /// The headers in this request
         /// </summary>
         public Dictionary<string, string> Headers { get; set; } = new();
+
+        /// <summary>
+        /// The cookies contained in this request
+        /// </summary>
+        public Dictionary<string, System.Net.Cookie> Cookies { get; set; } = new();
 
         /// <summary>
         /// The target of this request
@@ -25,14 +30,10 @@ namespace Cookie.Connections
         public string Parameters = "";
 
         /// <summary>
-        /// The raw data in this response
+        /// The raw data in this request
         /// </summary>
         public byte[] RequestData { get; set; } = [];
 
-        /// <summary>
-        /// The cookies to provide in this response
-        /// </summary>
-        private Dictionary<string, System.Net.Cookie> Cookies { get; set; } = new();
 
         /// <summary>
         /// The HTTP Status code result
@@ -40,7 +41,7 @@ namespace Cookie.Connections
         public HttpMethod Method { get; set; } = HttpMethod.Get;
 
         /// <summary>
-        /// The type of data in this response
+        /// The type of data in this request
         /// </summary>
         public string DataType { get; set; } = "text/html";
 
@@ -270,14 +271,13 @@ namespace Cookie.Connections
             while (true)
             {
                 var read = await inputStream.ReadLineAsync();
-                Logger.Debug(read);
                 if (read?.Trim().Length <= 0)
                     break;
                 int pos = read?.IndexOf(':') ?? -1;
                 if (pos > 0)
                 {
                     // and doink
-                    string key = read!.Remove(pos);
+                    string key = read!.Remove(pos).Trim();
                     string body = read.Substring(pos + 1);
 
                     // read the cookies
@@ -340,16 +340,16 @@ namespace Cookie.Connections
         {
             // Extract the cookie part of the Set-Cookie header (ignoring attributes like Path, Secure, etc.)
             var parts = header.Split(';');
-            if (parts.Length == 1) return null;
+            if (parts.Length < 1) return null;
             string namePart = parts[0].Trim();
 
             // Split into name and value
-            var cookieParts = namePart.Split('=');
-            if (cookieParts.Length != 2) return null;
+            int epos = namePart.IndexOf("=");
+            if(epos < 0) return null;
 
             //now we can get the cookie parts
-            string name = cookieParts[0].Trim();
-            string value = cookieParts[1].Trim();
+            string name = namePart.Remove(epos).Trim();
+            string value = namePart.Substring(epos + 1).Trim();
 
             // Create the Cookie object
             System.Net.Cookie cookie = new System.Net.Cookie(name, value);
