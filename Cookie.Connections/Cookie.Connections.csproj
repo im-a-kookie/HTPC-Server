@@ -1,18 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	  <TargetFrameworks>net9.0;net8.0;net8.0-browser;net9.0-browser;</TargetFrameworks>
+	  <TargetFrameworks>net8.0;net9.0;net9.0-browser;net8.0-browser</TargetFrameworks>
 	  <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="Stubs\BadRequest.html" />
-    <None Remove="Stubs\BadRequest.json" />
-    <None Remove="Stubs\NotAuthorized.html" />
-    <None Remove="Stubs\NotAuthorized.json" />
-    <None Remove="Stubs\Redirect.html" />
-  </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Stubs\BadRequest.html" />
@@ -27,10 +19,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Cookie.Crumbs\Cookie.Crumbs.csproj" />
     <ProjectReference Include="..\Cookie.MediaLibrary\Cookie.MediaLibrary.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Users\" />
   </ItemGroup>
 
 </Project>

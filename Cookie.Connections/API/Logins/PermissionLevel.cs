@@ -32,22 +32,22 @@ namespace Cookie.Connections.API.Logins
             WriteLevel = write;
         }
 
-        public (bool read, bool write) Validate(PermissionLevel level)
+        public readonly (bool read, bool write) Validate(PermissionLevel level)
         {
             return (ValidateRead(level), ValidateWrite(level));
         }
 
-        public bool ValidateRead(PermissionLevel input)
+        public readonly bool ValidateRead(PermissionLevel input)
         {
             return input.ReadLevel <= ReadLevel;
         }
 
-        public bool ValidateWrite(PermissionLevel input)
+        public readonly bool ValidateWrite(PermissionLevel input)
         {
             return input.WriteLevel <= WriteLevel;
         }
 
-        public int ToInt()
+        public readonly int ToInt()
         {
             return (int)ReadLevel | (int)WriteLevel << 4;
         }

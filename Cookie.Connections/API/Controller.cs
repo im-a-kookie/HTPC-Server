@@ -4,6 +4,7 @@ using Cookie.Logging;
 #if !BROWSER
 using Cookie.TCP;
 using System.ComponentModel.Design;
+using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
@@ -12,7 +13,7 @@ using System.Text;
 
 namespace Cookie.Connections.API
 {
-    public class Controller<Program>
+    public class Controller<Program>(Program owner)
     {
         private static class Errors
         {
@@ -42,15 +43,11 @@ namespace Cookie.Connections.API
 
         }
 
-        public Program Instance { get; private set; }
-
-        public Controller(Program owner)
-        {
-            Instance = owner;
-        }
+        public Program Instance { get; private set; } = owner;
 
 #if !BROWSER
 
+        public string DefaultLoginAddress = "/login";
 
         private ConnectionProvider? Server = null;
 
@@ -118,6 +115,13 @@ namespace Cookie.Connections.API
             return this;
         }
 
+
+        public Task SignalCloseServer()
+        {
+            if (Server == null) return Task.CompletedTask;
+            return Server.Close();
+        }
+
         /// <summary>
         /// Provides an awaitable task for awaiting server closure
         /// </summary>
@@ -129,13 +133,19 @@ namespace Cookie.Connections.API
             return;
         }
 
-
-
-        public void ApplyPersistentCookie(Response response, User user)
+        public void ApplyPersistentCookie(Request request, Response response, User user)
         {
-            var cookie = new System.Net.Cookie("LoginToken", user.GenerateToken(TimeSpan.FromDays(100000)));
-            cookie.HttpOnly = true;
-            cookie.Secure = true;
+            var cookie = new System.Net.Cookie("LoginToken", user.GenerateToken(TimeSpan.FromDays(100000)))
+            {
+                HttpOnly = true,
+                Path = "/"
+            };
+
+            if(request.Headers.TryGetValue("Host", out var host))
+            {
+                cookie.Domain = host.Split(':')[0];
+            }
+
             response.AddCookie(cookie);
         }
 
@@ -147,7 +157,7 @@ namespace Cookie.Connections.API
         /// <summary>
         /// The internal callback dictionary that maps endpoints to their processors
         /// </summary>
-        public Dictionary<string, (object? caller, ApiDelegate callback)> Callbacks = new();
+        public Dictionary<string, (object? caller, ApiDelegate callback)> Callbacks = [];
 
         /// <summary>
         /// Internal call for receiving requests from the underlying HTTP server
@@ -160,9 +170,24 @@ namespace Cookie.Connections.API
             User? user = null;
 
             // read the user out of this request
-            if (LoginManager != null && request.Cookies.TryGetValue("LoginToken", out var cookie))
+            if (LoginManager != null)
             {
-                user = LoginManager.GetUser(cookie.Value);
+                int pos = request.Parameters.IndexOf("token=");
+                if(pos > 0)
+                {
+                    string token = request.Parameters[(pos + 6)..];
+                    pos = token.IndexOf(';');
+                    if (pos > 0) token = token[..pos];
+                    user = LoginManager.GetUser(token);
+                }
+                else if (request.Headers.TryGetValue("Authorization", out var auth))
+                {
+                    user = LoginManager.GetUser(auth.Replace("Bearer", "").Trim());
+                }
+                else if (request.Cookies.TryGetValue("LoginToken", out var cookie))
+                {
+                    user = LoginManager.GetUser(cookie.Value);
+                }
             }
 
             string path = request.Target.ToLower();
@@ -231,13 +256,41 @@ namespace Cookie.Connections.API
             else if (ProvidesWebserver)
             {
                 if (HomePaths.Contains(path))
+                {
                     response.SetFile("wwwroot/index.html");
+
+                }
                 else
                 {
                     string filepath = "wwwroot" + request.Target;
-                    if (File.Exists("wwwroot/" + path))
+                    if (File.Exists(filepath))
                     {
-                        response.Filepath = filepath;
+                        response.SetFile(filepath);
+                    }
+                    else if (File.Exists(filepath + ".html"))
+                    {
+                        response.SetFile(filepath + ".html");
+                    }
+                    else
+                    {
+                        if (user == null)
+                        {
+                            return new Response().Redirect(DefaultLoginAddress);
+                        }
+
+                        var file = Path.GetFileName(request.Target);
+                        var dir = Path.GetDirectoryName(request.Target);
+                        if(File.Exists($"wwwroot/{dir}/${file}"))
+                        {
+                            response.SetFile($"wwwroot/{dir}/${file}");
+
+                        }
+                        else if(File.Exists($"wwwroot/{dir}/${file}.html"))
+                        {
+                            response.SetFile($"wwwroot/{dir}/${file}.html");
+
+                        }
+
                     }
                 }
                 return response;
@@ -271,7 +324,7 @@ namespace Cookie.Connections.API
             }
 
             // Now see if it's a json
-            if (input.StartsWith("{") || input.StartsWith("["))
+            if (input.StartsWith('{') || input.StartsWith('['))
             {
                 r.SetJson(input);
             }
@@ -368,7 +421,7 @@ namespace Cookie.Connections.API
                     else if (attrib is Creator create
                         && method.IsStatic
                         && method.ReturnType == typeof(T)
-                        && method.GetParameters().Count() == 0)
+                        && method.GetParameters().Length == 0)
                     {
                         creator = method;
                     }
@@ -497,5 +550,5 @@ namespace Cookie.Connections.API
 #endif
 
 
-    }
+            }
 }

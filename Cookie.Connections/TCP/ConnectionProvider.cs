@@ -83,7 +83,7 @@ namespace Cookie.TCP
         public ConnectionProvider(int port, X509Certificate2? ssl = null)
         {
             // Set up the cancellation and awaitable subsytems
-            TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
+            TaskCompletionSource<bool> tcs = new();
             CancellationAwaitable = tcs.Task;
             connectionCanceller.Token.Register(() =>
             {
@@ -104,7 +104,7 @@ namespace Cookie.TCP
             this.SSL = ssl;
 
             // Start the listener system-wide.
-            listener = new TcpListener(IPAddress.Any, port);
+            listener = new(IPAddress.Any, port);
             listener.Start(25);
 
             Logger.Info($"TCP Running on port: {port}");
@@ -207,7 +207,6 @@ namespace Cookie.TCP
             monitorSignal.Set();
         }
 
-
         public async Task<Response?> CallOnRequest(Request request)
         {
             // Convert the EventHandler into an async action and await it
@@ -216,13 +215,11 @@ namespace Cookie.TCP
             {
                 // Use Task.Run to handle the async method properly
                 response = await handler(request);
-#if DEBUG
-                Logger.Debug("Processed a handler...");
-#endif
                 if (response != null) return response;
             }
             return null;
         }
+
 
         /// <summary>
         /// Closes this connection provider immediately.
@@ -234,7 +231,7 @@ namespace Cookie.TCP
             connectionCanceller.Cancel();
             listener?.Stop();
 
-            List<Task> tasks = new List<Task>();
+            List<Task> tasks = [];
 
             //Now let's just wait
             foreach (var l in LiveListeners)

@@ -77,7 +77,7 @@ namespace Cookie.TCP
         /// </summary>
         internal async void Listen()
         {
-            List<Task> active = new();
+            List<Task> active = [];
             try
             {
                 while (!Token.IsCancellationRequested)
@@ -93,9 +93,6 @@ namespace Cookie.TCP
 
                     // Await a response
                     var client = connection.listener.AcceptTcpClientAsync(Token);
-#if DEBUG
-                    Logger.Debug("Incoming connection!");
-#endif
                     await client;
                     // We are now counted as a live thread
                     Interlocked.Increment(ref InFlightCalls);
@@ -107,6 +104,7 @@ namespace Cookie.TCP
                     if (client.IsCompletedSuccessfully)
                     {
                         var tcpClient = client.Result;
+                        tcpClient.NoDelay = true;
                         active.Add(Task.Run(async () =>
                         {
                             //using (tcpClient) // Ensures cleanup of the TcpClient
@@ -120,7 +118,7 @@ namespace Cookie.TCP
                     else
                     {
                         Interlocked.Decrement(ref InFlightCalls);
-                        if (client.Result != null) client.Result.Close();
+                        client.Result?.Close();
                     }
 
                     // This thread is no longer live
@@ -136,7 +134,7 @@ namespace Cookie.TCP
                 await Task.WhenAll(active);
                 Interlocked.Decrement(ref connection.IdleWorkers);
             }
-            Logger.Log($"Listener closed: {Address}");
+            Logger.Debug($"Listener closed: {Address}");
 
         }
 
@@ -160,7 +158,6 @@ namespace Cookie.TCP
                 );
                 // Authenticate the server using the SSL certificate.
                 await sslStream.AuthenticateAsServerAsync(connection.SSL, false, SslProtocols.Tls12, true);
-                Logger.Debug($"Established SSL connection on {client.Client.RemoteEndPoint}");
                 return sslStream;
             }
             else
@@ -180,23 +177,13 @@ namespace Cookie.TCP
             try
             {
 
-#if DEBUG
-                Logger.Debug("Processing...");
-#endif
+
                 // get the underlying stream
                 // Establish a request and response
                 var request = new Request();
-                await request.ReadAsync(stream);
+                await request.ReadAsync(client, stream);
                 var response = await connection.CallOnRequest(request);
-
-#if DEBUG
-                Logger.Debug("Got Response...");
-#endif
-
-                if (response == null)
-                {
-                    response = new Response().NotFound();
-                }
+                response ??= new Response().NotFound();
 
                 // write the response back
                 await response.WriteDataAsync(stream);

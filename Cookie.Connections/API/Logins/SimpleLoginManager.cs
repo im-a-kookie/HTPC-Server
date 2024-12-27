@@ -6,17 +6,12 @@ using static Cookie.Connections.API.Logins.User;
 
 namespace Cookie.Connections.API.Logins
 {
-    public class SimpleLoginManager<T> : IDictable, ILoginManager<T>
+    public class SimpleLoginManager<T>(Controller<T>? controller) : IDictable, ILoginManager<T>
     {
 
         public ConcurrentDictionary<string, User> NameUsers = [];
 
-        public Controller<T>? Controller { get; set; }
-
-        public SimpleLoginManager(Controller<T>? controller)
-        {
-            Controller = controller;
-        }
+        public Controller<T>? Controller { get; set; } = controller;
 
         /// <summary>
         /// Gets the controller associated with this login manager
@@ -61,7 +56,7 @@ namespace Cookie.Connections.API.Logins
                 // don't allow users to log in after multiple failed attempts
                 if (user.Incorrectness >= 3)
                 {
-                    if (DateTime.UtcNow < user.Delay)
+                    if (DateTime.UtcNow < user.Lockout)
                         return null;
                 }
 
@@ -77,7 +72,7 @@ namespace Cookie.Connections.API.Logins
                     ++user.Incorrectness;
                     if (user.Incorrectness >= 3)
                     {
-                        user.Delay = DateTime.UtcNow.AddSeconds(30);
+                        user.Lockout = DateTime.UtcNow.AddSeconds(30);
                     }
                 }
             }
@@ -93,7 +88,7 @@ namespace Cookie.Connections.API.Logins
         /// <returns></returns>
         public User? CreateUser(string username, string password, PermissionLevel level)
         {
-            User user = new User();
+            User user = new();
             user.UserName = username;
             // ensure that passwords are hashed on their way into the user lookup
             user.UserHash = CryptoHelper.HashSha1(password, 16);
