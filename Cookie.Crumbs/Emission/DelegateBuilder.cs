@@ -72,8 +72,7 @@ namespace Cookie.Emission
             }
 
             // whewwww now we can make the call
-            il.EmitCall(context.IsStatic ? OpCodes.Call : OpCodes.Callvirt, context.Target, null);
-            //DWrite($"Call      {context.Target.Name}");
+            il.EmitCall(OpCodes.Call, context.Target, null);
             EmitReturnType(il, context);
 
             // -- We have fully generated the IL for the dynamic method --
@@ -102,10 +101,8 @@ namespace Cookie.Emission
                 if (context.TargetReturn != typeof(void))
                 {
                     il.Emit(OpCodes.Pop); //bonk
-                    //DWrite($"Pop");
                 }
                 il.Emit(OpCodes.Ret); //and return
-                //DWrite($"Ret");
                 return;
             }
 
@@ -113,25 +110,18 @@ namespace Cookie.Emission
             if (context.TargetReturn == typeof(void))
             {
                 // Null is null
-                il.Emit(OpCodes.Ldnull);
-                //DWrite($"ldnull");
-            }
+                il.Emit(OpCodes.Ldnull);            }
             else if (context.TargetReturn.IsValueType)
             {
                 // value types, we can box into an object
                 il.Emit(OpCodes.Box, context.TargetReturn);
-                //DWrite($"Box       {context.TargetReturn}");
             }
             else
             {
                 // ref types, we can cast into objects
                 il.Emit(OpCodes.Castclass, typeof(object));
-                //DWrite($"Castclass Object");
             }
-
             il.Emit(OpCodes.Ret);
-            //DWrite($"Ret");
-
         }
 
         /// <summary>
@@ -234,15 +224,6 @@ namespace Cookie.Emission
                 //                                             |
                 il.MarkLabel(labelDone); //<-------------------┘
                 il.Emit(OpCodes.Ldloc, local);
-
-                //DWrite($"BrTrue.S  notnull");
-                //DWrite($"Ldc.I4    0");
-                //DWrite($"Newobj    {underlyingType.Name}");
-                //DWrite($"Br.s      done");
-                //DWrite($"Label     notnull");
-                //DWrite($"Ldarg.S   {srcIndex}");
-                //DWrite($"Unbox.Any {underlyingType.Name}");
-                //DWrite($"Label     done");
 
             }
         }

@@ -134,11 +134,11 @@ namespace Cookie.Emission
                 {
 
                     // Calculate the likeness of every available pairing
-                    List<(int a, int b, double sim)> pairs = new();
-                    for (int i = 0; i < entryMatch.Count(); i++)
+                    List<(int a, int b, double sim)> pairs = [];
+                    for (int i = 0; i < entryMatch.Length; i++)
                     {
                         int aindex = entryMatch[i];
-                        for (int j = 0; j < targetMatch.Count(); j++)
+                        for (int j = 0; j < targetMatch.Length; j++)
                         {
                             int bindex = targetMatch[j];
                             // now get the likeness
@@ -186,7 +186,7 @@ namespace Cookie.Emission
         /// <returns></returns>
         internal string GetQualifiedTargetName()
         {
-            StringBuilder sb = new StringBuilder(100);
+            StringBuilder sb = new (100);
             sb.Append($"{Target.DeclaringType?.Name ?? "<?>"}.{Target.Name}");
             sb.Append("  ");
             sb.Append($"[{TargetReturn.Name}] ({String.Join(", ", TargetParams.Select(x => x.Name))})");

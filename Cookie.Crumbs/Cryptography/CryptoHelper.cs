@@ -9,29 +9,6 @@ namespace Cookie.Cryptography
 
         public static Func<string> DefaultKey = () => "43o87yreiuytw346vrte";
 
-        public static string HashHMAC(string key, string input)
-        {
-            // Convert key and data to byte arrays
-            byte[] keyBytes = Encoding.UTF8.GetBytes(key);
-            byte[] dataBytes = Encoding.UTF8.GetBytes(input);
-
-            // Create an HMACSHA256 instance with the key
-            using var hmac = new HMACSHA256(keyBytes);
-
-            // Compute the HMAC for the data
-            byte[] hashBytes = hmac.ComputeHash(dataBytes);
-
-            // Convert the hash to a Base64 string
-            return Convert.ToBase64String(hashBytes);
-        }
-
-
-        public static bool VerifyHMAC(string key, string input, string given)
-        {
-            var test = HashHMAC(key, input);
-            return test == given;
-        }
-
         /// <summary>
         /// Hashes a string with the given input
         /// </summary>
@@ -49,11 +26,8 @@ namespace Cookie.Cryptography
         /// <returns></returns>
         public static string HashSha256(string input, int maxLength = -1)
         {
-            using (HashAlgorithm sha = SHA256.Create())
-            {
-                return HashAsHex(sha, input, maxLength);
-
-            }
+            using var sha = SHA256.Create();
+            return HashAsHex(sha, input, maxLength);
         }
 
         /// <summary>
@@ -63,10 +37,8 @@ namespace Cookie.Cryptography
         /// <returns></returns>
         public static string HashSha1(string input, int maxLength = -1)
         {
-            using (HashAlgorithm sha = SHA1.Create())
-            {
-                return HashAsHex(sha, input, maxLength);
-            }
+            using var sha = SHA1.Create();
+            return HashAsHex(sha, input, maxLength);
         }
 
         /// <summary>
@@ -156,16 +128,14 @@ namespace Cookie.Cryptography
         /// <returns></returns>
         public static int GetStringHash(string input)
         {
-            using (SHA256 sha256 = SHA256.Create())
+            using var sha256 = SHA256.Create();
+            byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+            int n = 0;
+            for (int i = 0; i < hash.Length; i++)
             {
-                byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
-                int n = 0;
-                for (int i = 0; i < hash.Length; i++)
-                {
-                    n ^= hash[i] << (i & 0x3);
-                }
-                return n;
+                n ^= hash[i] << (i & 0x3);
             }
+            return n;
         }
 
         /// <summary>
@@ -176,19 +146,17 @@ namespace Cookie.Cryptography
         public static (byte[] key, byte[] iv) GenerateKeyAndIV(string input)
         {
             // Use SHA256 to hash the input string
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] hashA = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
-                byte[] hashB = sha256.ComputeHash(Encoding.UTF8.GetBytes("splarg" + input));
+            using var sha256 = SHA256.Create();
+            byte[] hashA = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+            byte[] hashB = sha256.ComputeHash(Encoding.UTF8.GetBytes("splarg" + input));
 
-                // Use the first 16 bytes for the AES key (for AES-128)
-                var key = new byte[32];
-                Array.Copy(hashA, 0, key, 0, 16);
-                // Use the next 16 bytes for the IV
-                var iv = new byte[16];
-                Array.Copy(hashB, 16, iv, 0, 16);
-                return (key, iv);
-            }
+            // Use the first 16 bytes for the AES key (for AES-128)
+            var key = new byte[32];
+            Array.Copy(hashA, 0, key, 0, 16);
+            // Use the next 16 bytes for the IV
+            var iv = new byte[16];
+            Array.Copy(hashB, 16, iv, 0, 16);
+            return (key, iv);
         }
 
         /// <summary>
@@ -219,18 +187,14 @@ namespace Cookie.Cryptography
         public static byte[] Encrypt(byte[] data)
         {
 #if !BROWSER
-            using (Aes aes = Aes.Create())
-            {
-                (aes.Key, aes.IV) = GenerateKeyAndIV(DefaultKey());
+            using var aes = Aes.Create();
+            (aes.Key, aes.IV) = GenerateKeyAndIV(DefaultKey());
 
-                using (MemoryStream memoryStream = new MemoryStream())
-                using (CryptoStream cryptoStream = new CryptoStream(memoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
-                {
-                    cryptoStream.Write(data, 0, data.Length);
-                    cryptoStream.FlushFinalBlock();
-                    return memoryStream.ToArray();
-                }
-            }
+            using MemoryStream memoryStream = new();
+            using CryptoStream cryptoStream = new(memoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write);
+            cryptoStream.Write(data, 0, data.Length);
+            cryptoStream.FlushFinalBlock();
+            return memoryStream.ToArray();
 #else
             return data;
 #endif
@@ -248,13 +212,11 @@ namespace Cookie.Cryptography
             {
                 (aes.Key, aes.IV) = GenerateKeyAndIV(DefaultKey());
 
-                using (MemoryStream memoryStream = new MemoryStream())
-                using (CryptoStream cryptoStream = new CryptoStream(memoryStream, aes.CreateDecryptor(), CryptoStreamMode.Write))
-                {
-                    cryptoStream.Write(data, 0, data.Length);
-                    cryptoStream.FlushFinalBlock();
-                    return memoryStream.ToArray();
-                }
+                using MemoryStream memoryStream = new();
+                using CryptoStream cryptoStream = new(memoryStream, aes.CreateDecryptor(), CryptoStreamMode.Write);
+                cryptoStream.Write(data, 0, data.Length);
+                cryptoStream.FlushFinalBlock();
+                return memoryStream.ToArray();
             }
 #else
             return data;

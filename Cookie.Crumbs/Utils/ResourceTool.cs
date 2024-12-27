@@ -13,6 +13,7 @@ namespace Cookie.Utils
         {
 
             // Get the assembly that contains the embedded resource
+#if !BROWSER
             var assembly = Assembly.GetCallingAssembly();
 
             using (var stream = assembly.GetManifestResourceStream(path))
@@ -29,6 +30,9 @@ namespace Cookie.Utils
                     return content;
                 }
             }
+#else
+            return null;
+#endif
         }
 
 
