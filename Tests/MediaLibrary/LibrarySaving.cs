@@ -44,7 +44,7 @@ namespace Tests.MediaLibrary
             // Now let's generate the episodes
             for (int i = 1; i < 25; i++)
             {
-                MediaFile file = new MediaFile();
+                MediaFile file = new();
                 file.SNo = 1;
                 file.EpNo = i;
                 file.SetPath(title, $"{directory}\\{name}{i.ToString().PadLeft(2, '0')} {suffix}.mkv");
@@ -95,7 +95,8 @@ namespace Tests.MediaLibrary
             }
             else Assert.Fail("The series is not mapped by name!");
 
-
+            // cleanup
+            Directory.Delete("mock_library", true);
 
         }
 

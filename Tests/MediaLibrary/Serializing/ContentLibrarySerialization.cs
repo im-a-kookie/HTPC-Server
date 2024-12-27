@@ -14,16 +14,13 @@ namespace Tests.MediaLibrary.Serializing
         [TestMethod]
         public void TestLibrarySerialize()
         {
-            bool didNotify = false;
             try
             {
                 Directory.Delete("mock_library", true);
             }
             catch { }
 
-            Library testLibrary = new Library("mock_library");
-
-            testLibrary.OnSeriesUpdate += (x, y) => didNotify = true;
+            Library testLibrary = new("mock_library");
 
 
             // set up some values here
@@ -31,8 +28,8 @@ namespace Tests.MediaLibrary.Serializing
             string name = "Random Thing S01E";
             string suffix = "[long messy]suffix[x265][720p] with lots of junk";
 
-            List<MediaFile> mockFiles = new();
-            List<string> realPaths = new();
+            List<MediaFile> mockFiles = [];
+            List<string> realPaths = [];
             var season = new Season();
             var title = new Title("mock title");
             testLibrary.FoundSeries.TryAdd(title.ID, title);
@@ -45,9 +42,12 @@ namespace Tests.MediaLibrary.Serializing
             // Now let's generate the episodes
             for (int i = 1; i < 25; i++)
             {
-                MediaFile file = new MediaFile();
-                file.SNo = 1;
-                file.EpNo = i;
+                MediaFile file = new()
+                {
+                    SNo = 1,
+                    EpNo = i
+                };
+
                 file.SetPath(null, $"{directory}\\{name}{i.ToString().PadLeft(2, '0')} {suffix}.mkv");
                 realPaths.Add(file.Path);
                 mockFiles.Add(file);
@@ -63,7 +63,7 @@ namespace Tests.MediaLibrary.Serializing
             testLibrary.RefreshTargetFileMaps();
 
             // write it to a stream
-            using MemoryStream output = new MemoryStream();
+            using MemoryStream output = new();
             Byter.ToBytes(output, testLibrary.MakeFullDictionary());
             output.Seek(0, SeekOrigin.Begin);
 

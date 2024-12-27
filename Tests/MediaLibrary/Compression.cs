@@ -11,7 +11,7 @@ namespace Tests.MediaLibrary
         [TestMethod]
         public void TestCompression()
         {
-            Library testLibrary = new Library("C:\\");
+            Library testLibrary = new("mock-library");
 
             // set up some values here
             string directory = @"C:\Movies\has a long messy prefix with random junk";

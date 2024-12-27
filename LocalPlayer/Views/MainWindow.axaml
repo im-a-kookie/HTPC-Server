@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LocalPlayer.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:LocalPlayer.Views"
+		xmlns:rxui="http://reactiveui.net"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="LocalPlayer.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="LocalPlayer">
+	
+	<Grid>
+		<rxui:RoutedViewHost Grid.Row="0" Router="{Binding Router}">
+			<rxui:RoutedViewHost.DefaultContent>
+				<TextBlock Text="Loading..."
+						   HorizontalAlignment="Center"
+						   VerticalAlignment="Center"
+						   FontSize="40"
+						   FontFamily="{StaticResource MainFont}"
+						   FontWeight="600"
+						   >
+					<TextBlock.Effect>
+						<DropShadowEffect Color="White" Opacity="100" OffsetX="0" OffsetY="0" BlurRadius="15"/>
+					</TextBlock.Effect>
+
+				</TextBlock>
+			</rxui:RoutedViewHost.DefaultContent>
+			<rxui:RoutedViewHost.ViewLocator>
+				<!-- See AppViewLocator.cs section below -->
+				<views:ViewLocator />
+			</rxui:RoutedViewHost.ViewLocator>
+		</rxui:RoutedViewHost>
+	</Grid>
+
+</Window>

@@ -10,10 +10,6 @@
 *.userosscache
 *.sln.docstates
 
-# Ignore HTTPS/SSL certificates
-*.pfx
-*.key
-
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
