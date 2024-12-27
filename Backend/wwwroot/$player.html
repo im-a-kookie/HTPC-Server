@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/x-icon" href="/favicon/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon/android-chrome-512x512.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library View</title>
+    <link href="/video-js.css" rel="stylesheet">
+    <script src="/video.min.js"></script>
+
+    <style>
+        /* Make the video fill the entire viewport */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: black;
+        }
+        #video-container {
+            height: 100vh; /* Full viewport height */
+            width: 100vw; /* Full width */
+            position: relative; /* Ensure proper positioning */
+        }
+
+        video-js {
+            width: 100vw !important;
+            height: 100vh !important;
+            object-fit: contain; /* Makes sure the video covers the entire screen */
+            position: absolute;
+        }
+
+        /* Optional: style for the play button (in case you want one) */
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Video element to display video -->
+    <div id="video-container">
+        <video class="video-js"
+               id="videoPlayer"
+               autoplay
+               loop
+               controls
+               preload="auto"
+               data-setup='{}'>
+            >
+            <source src="video.mp4" type="video/mp4">
+            <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p>
+        </video>
+    </div>
+    <script>
+        // Fullscreen toggle functionality (press F11 to enter fullscreen)
+        const vid = document.getElementById('videoPlayer');
+        const playButton = document.getElementById('playButton');
+
+        // Function to toggle fullscreen mode
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                // Request fullscreen on the video element
+                if (vid.requestFullscreen) {
+                    vid.requestFullscreen();
+                } else if (vid.mozRequestFullScreen) { // Firefox
+                    vid.mozRequestFullScreen();
+                } else if (vid.webkitRequestFullscreen) { // Chrome, Safari, Opera
+                    vid.webkitRequestFullscreen();
+                } else if (vid.msRequestFullscreen) { // IE/Edge
+                    vid.msRequestFullscreen();
+                }
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        window.onkeydown = vidDown;
+        window.onkeyup = vidUp;
+
+        let keyDownTime = 0;  // To store the time when the key was pressed down
+        let keyHeldTime = 0;  // To store how long the key has been held
+        let keyIsHeld = false; // To track if the key is being held down
+        let seekInterval = null;  // Interval for continuous seeking
+        let stepDefault = 5;
+        var curTime;
+        var ended = false;
+
+
+        window.onload = function ()
+        {
+            loadFromUrl();
+        };
+
+        //Update video time variable every 200ms
+        window.setInterval(function () {
+            curTime = vid.currentTime;
+            if (curTime >= vid.duration - 5 && !ended) {
+                ended = true;
+                vidEnded();
+            }
+        }, 50);
+
+        // try to load the next video
+        function vidEnded() {
+            ended = true;
+            // Get the current URL
+            const url = new URL(window.location);
+            var value = url.search.get('id');
+            // Update or add the query parameter
+            url.searchParams.set('id', value + 1);
+            // Change the browser's address bar without reloading
+            window.history.replaceState({}, '', url);
+        }
+
+
+        async function loadFromUrl() {
+            const url = new URL(window.location);
+            var value = url.searchParams.get('id');
+            console.log("Playing " + value);
+
+            const result = await fetch('/content/valid?' + value, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+            if (result.ok) {
+                vid.src = "/content/video?" + value;
+                vid.load();
+                vid.play();
+                ended = false;
+            }
+            else {
+                window.history.back();
+            }
+
+        }
+
+
+        function step(amount) {
+            vid.currentTime = Math.max(0, Math.min(vid.duration, curTime + amount));
+            curTime = vid.currentTime;
+        }
+
+        function getStepAmount(duration) {
+            var amount = stepDefault;
+            if (duration > 3) amount = 10
+            if (duration > 5) amount = 30;
+            if (duration > 8) amount = 60;
+            return amount;
+        }
+
+        function startInterval(key) {
+            if (!isSeeker(key) || keyIsHeld) return;
+            keyIsHeld = true;
+
+            var stepAmount = getStepAmount(keyDownTime / 1000);
+            step(stepAmount * (key == 'ArrowLeft' ? -1 : 1));
+
+            // Continuous seeking when key is held down
+            seekInterval = setInterval(function () {
+                const elapsedTime = Date.now() - keyDownTime;
+                keyHeldTime = elapsedTime;  // Update how long the key has been held
+                var stepAmount = getStepAmount(keyDownTime / 1000);
+                step(stepAmount * (key == 'ArrowLeft' ? -1 : 1));
+            }, 100); // Repeat seeking every 100ms while key is held
+        }
+
+        function endInterval(key) {
+            if (!isSeeker(key) || !keyIsHeld) return;
+            // Stop the seek interval when the key is released
+            clearInterval(seekInterval);
+            keyIsHeld = false;
+        }
+
+        function isSeeker(key) {
+            return (key == 'ArrowLeft' || key == 'ArrowRight');
+        }
+
+        function vidDown(e) {
+            startInterval(e.code);
+        }
+
+        function vidUp(e) {
+            endInterval(e.code);
+        }
+
+    </script>
+</body>
+</html>

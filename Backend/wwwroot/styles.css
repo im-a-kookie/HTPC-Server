@@ -1,0 +1,69 @@
+/* Body and Background */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    font-family: Arial, sans-serif;
+}
+
+/* Gradient Background */
+body {
+    background-image: url('/backgrounds/background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Full viewport height */
+}
+
+/* Container for login box */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 50vw;
+    max-width:300px;
+}
+
+/* Login Box */
+.login-box {
+    backdrop-filter: blur(11px);
+    padding: 10px;
+    border-radius: 8px;
+    outline: groove 5px;
+    box-shadow: 0px 0px 5px 5px rgba(0, 0, 0, 0.5);
+    width: 300px;
+    text-align: center;
+}.login-box h2 {
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+/* Textbox Styles */
+.textbox {
+    margin-bottom: 20px;
+}.textbox input {
+        width: 90%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+/* Button Style */
+.btn {
+    width: 50%;
+    padding: 10px;
+    background-color: #994e73df;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}.btn:hover {
+    background-color: #3e59b3;
+}
+

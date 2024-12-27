@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/x-icon" href="/favicon/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon/android-chrome-512x512.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <div class="textbox">
+                    <input type="text" placeholder="Username" name="username" required>
+                </div>
+                <div class="textbox">
+                    <input type="password" placeholder="Password" name="password" required>
+                </div>
+                <input type="submit" value="Login" class="btn">
+            </form>
+            <!-- Error message area -->
+            <div id="errorMessage" class="error-message" style="display: none;">Wrong username or password</div>
+        </div>
+    </div>
+    <script>
+        // Get the form element and error message element
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+
+        window.onload = function () {
+            fetch('oauth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/library';
+                } else {
+                }
+            })
+            .catch(error => {
+            });
+        }
+
+        loginForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const username = loginForm.username.value;
+            const password = loginForm.password.value;
+            const loginData = {
+                Username: username,
+                Password: password
+            };
+            fetch('oauth/login', {
+                method: 'POST', 
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(loginData) ,
+                credentials: 'include',
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/library';
+                } else {
+                    throw new Error('Invalid login');
+                }
+            })
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                errorMessage.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/x-icon" href="/favicon/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon/android-chrome-512x512.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library View</title>
+    <link rel="stylesheet" href="/styles.css">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100vh;
+            margin-top: 20px;
+        }
+
+        .search-panel {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            backdrop-filter: blur(10px);
+            position: fixed;
+            top: 10px;
+            z-index: 10;
+            width: 80vw;
+            max-width: 800px;
+            min-width: 200px;
+            align-self: center;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+            .search-panel input {
+                width: calc(100% - 100px);
+                padding: 8px;
+                font-size: 14px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+            }
+
+            .search-panel button {
+                padding: 8px;
+                font-size: 14px;
+                margin-left: 5px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                cursor: pointer;
+                background-color: #f0f0f0;
+                transition: background-color 0.2s;
+            }
+
+                .search-panel button:hover {
+                    background-color: #ddd;
+                }
+
+        .results-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            grid-column-gap:10px;
+            grid-row-gap: 10px;
+            padding: 10px;
+            margin-top: 60px; /* Space for the search box */
+            height: calc(100vh - 60px); /* Fill remaining space */
+            width: 90vw;
+            max-width: 1200px;
+            box-sizing: border-box;
+        }
+
+        .image-container {
+            width: 125px;
+            height: 100%;
+            flex-shrink: 0; /* Prevent the image from shrinking */
+            margin-right: 15px;
+            overflow: hidden;
+            border-radius: 4px;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Ensures the image scales and crops as needed */
+            border-radius: 4px; /* Optional: Add rounded corners to the image */
+        }
+
+        .result-content{
+            flex-grow: 1;
+            text-align:left;
+            align-items: flex-start;
+        }
+
+        .result-item {
+            display: flex;
+            width: 95%;
+            height: 180px;
+            backdrop-filter: blur(10px);
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            outline: auto 3px;
+            box-shadow: 0 0px 6px 6px rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+            .result-item:hover {
+                transform: scale(1.05);
+            }
+
+            .result-item img {
+                width: 100%;
+                height: auto;
+                object-fit: cover;
+                flex-shrink: 0;
+            }
+
+            .result-item h3 {
+                margin: 10px 0 5px;
+                font-size: 17px;
+                color: #EEE;
+                text-overflow: ellipsis;
+                white-space: pre-wrap;
+                overflow: hidden;
+            }
+
+            .result-item p {
+                margin: 0;
+                font-size: 14px;
+                color: #DDD;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+    </style>
+
+</head>
+<body>
+
+        <!-- Search panel with textbox -->
+    <div class="search-panel">
+        <input type="text" id="search-box" placeholder="Search..." oninput="filterResults()">
+        <button id="get-button" onclick="getResults()">↓</button>
+        <button id="refresh-button" onclick="refreshResults()">↺</button>
+    </div>
+
+        <div class="search-container">
+            <!-- Results panel for displaying search results -->
+            <div class="results-panel" id="results-container">
+                <!-- Search results will be dynamically inserted here -->
+            </div>
+        </div>
+
+    <script>
+        jsonData = [
+        ];
+
+        async function refreshResults() {
+            try {
+                const container = document.getElementById('results-container');
+                container.innerHTML = '';  // Clear previous results
+
+                const tokenResponse = await fetch('/oauth/api_token', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                if (!tokenResponse.ok) throw new Error('Failed to fetch token');
+                const data = await tokenResponse.json();
+                const token = data.token;
+
+                const resourceResponse = await fetch('/content/refresh', { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } });
+                if (!resourceResponse.ok) throw new Error('Failed to fetch protected resource');
+
+                const results = await fetch('/content/library', { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } });
+                const json = await results.json();
+                console.log(json);
+                jsonData = json;
+
+                displayResults(jsonData);
+
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function getResults() {
+            try {
+                const container = document.getElementById('results-container');
+                container.innerHTML = '';  // Clear previous results
+
+                const tokenResponse = await fetch('/oauth/api_token', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                if (!tokenResponse.ok) throw new Error('Failed to fetch token');
+                const data = await tokenResponse.json();
+                const token = data.token;
+
+                const results = await fetch('/content/library', { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } });
+                const json = await results.json();
+                console.log(json);
+                jsonData = json;
+
+                displayResults(jsonData);
+
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+
+        // Function to display search results
+        function displayResults(results) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = '';  // Clear previous results
+
+            // If no results, show a message
+            if (results.length === 0) {
+                return;
+            }
+
+            // Loop through results and create result items
+            results.forEach(item => {
+                const resultItem = document.createElement('div');
+                resultItem.classList.add('result-item');
+
+                const imageUrl = item.id ? `/content/thumb?${item.id}.jpg` : '/thumb.jpg';
+                console.log(`/content/cover?${item.id}.jpg`);
+                resultItem.innerHTML = `
+                        <div class="image-container">
+                            <img src="${imageUrl}" alt="Cover for ${item.title}" onerror="this.hidden=true;">
+                        </div>
+                        <div class="result-content">
+                            <h3>${item.title}</h3>
+                            <p>${item.description}</p>
+                        </div>`;
+                resultItem.addEventListener('click', () => {
+                    window.location.href = `/content/series?id=${item.id}`
+                });
+
+                container.appendChild(resultItem);
+            });
+        }
+
+        // Function to filter results based on search input
+        function filterResults() {
+            const searchTerm = document.getElementById('search-box').value.toLowerCase();
+
+            var sorted = jsonData.sort((a, b) => a.title.localeCompare(b.title));
+
+            const hasTitle = sorted.filter(item => {
+                return item.title.toLowerCase().includes(searchTerm);
+            });
+
+            const hasDesc = sorted.filter(item => {
+                return item.description.toLowerCase().includes(searchTerm);
+            });
+
+            const mergedList = [...hasTitle, ...hasDesc];
+            let uniqueList = Array.from(
+                new Map(mergedList.map(item => [item.id, item])).values()
+            );
+
+            displayResults(uniqueList);
+        }
+
+        // Display all results initially
+
+    </script>
+</body>
+</html>
