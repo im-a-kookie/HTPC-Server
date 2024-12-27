@@ -13,9 +13,9 @@ namespace Cookie.Serializers.Bytewise
         {
             public BinaryWriter? writer;
             public BinaryReader? reader;
-            public Dictionary<Type, int> TypeLookup = new();
-            public Dictionary<int, Type> CodeLookup = new();
-            public Dictionary<int, ConstructorInfo> ConstructorLookup = new();
+            public Dictionary<Type, int> TypeLookup = [];
+            public Dictionary<int, Type> CodeLookup = [];
+            public Dictionary<int, ConstructorInfo> ConstructorLookup = [];
 
             /// <summary>
             /// Gets a code for an input type
@@ -57,7 +57,7 @@ namespace Cookie.Serializers.Bytewise
         public delegate object? Reader(SerialContext reader, char code);
 
         public static Dictionary<Type, char> TypeToHeader = new();
-        public static Dictionary<Type, (char code, Writer writer)> Writers = new();
+        public static Dictionary<Type, (char code, Writer writer)> Writers = [];
         public static Writer? GenericWriter = null;
         public static Writer? DictableWriter = null;
 
@@ -344,6 +344,8 @@ namespace Cookie.Serializers.Bytewise
             Reader? valReader = Readers[val];
 
             if (valReader == null) return null;
+            if (keyReader == null) return null;
+
             Dictionary<K, V?>? results = new((count * 3) / 2);
             for (int i = 0; i < count; i++)
             {
@@ -381,7 +383,7 @@ namespace Cookie.Serializers.Bytewise
 
         public static IDictionary<string, object?>? FromBytes(Stream input)
         {
-            SerialContext context = new SerialContext();
+            SerialContext context = new();
             using BinaryReader reader = new(input);
             context.reader = reader;
             // now read a thing
@@ -391,12 +393,10 @@ namespace Cookie.Serializers.Bytewise
                 int index = reader.ReadInt32();
                 string t = reader.ReadString();
 
-                var type = Type.GetType(t);
-                if (type == null) throw new Exception("Cannot decode type header: " + t);
+                var type = Type.GetType(t) ?? throw new Exception("Cannot decode type header: " + t);
                 if (!type.IsAssignableTo(typeof(IDictable))) throw new Exception("Cannot decode non-dictable type " + t);
 
-                var c = type.GetConstructor([]);
-                if (c == null) throw new Exception("Type must have empty constructor! " + t);
+                var c = type.GetConstructor([]) ?? throw new Exception("Type must have empty constructor! " + t);
 
                 // load it
                 context.TypeLookup.Add(type, index);
@@ -421,8 +421,10 @@ namespace Cookie.Serializers.Bytewise
         {
             using MemoryStream firstWrite = new();
             using BinaryWriter bw = new(firstWrite);
-            SerialContext context = new();
-            context.writer = bw;
+            SerialContext context = new()
+            {
+                writer = bw
+            };
 
             ToStream(context, data);
 
