@@ -3,13 +3,16 @@ using Cookie.Utils;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-namespace Backend.ServerLibrary
+namespace Server.ServerLibrary
 {
-    public class Searcher
+    /// <summary>
+    /// Creates a new searcher
+    /// </summary>
+    /// <param name="rootFolder"></param>
+    public partial class Searcher(string rootFolder)
     {
 
         public static List<string> VideoExtensions = [".mp4", ".mkv", ".m4v", ".avi", ".wmv"];
-
 
         public static Regex TitleGet = new Regex(
             //@"(?:\[[^\]]*\]\s*)*(?<Title>[A-Z](?:[a-z]*|\d+)(?:[.\s&-][A-Z](?:[a-z]*|\d+))*)(?=.*(?:S\d{2}|(?:\(\d{4}\)|\d{4})|Season\s?\d{1,2}|1080p|720p|x265|HEVC|x264|AV1))",
@@ -43,7 +46,7 @@ namespace Backend.ServerLibrary
             if (directory.StartsWith("season"))
             {
                 //strip "season" and see if we can read a season
-                int.TryParse(directory.Substring(6).Trim(), out season);
+                int.TryParse(directory[6..].Trim(), out season);
                 directory = Path.GetDirectoryName(Path.GetDirectoryName(file))!;
                 directory = Path.GetFileName(directory)!;
                 if (directory != null)
@@ -55,7 +58,7 @@ namespace Backend.ServerLibrary
 
             string filename = Path.GetFileName(Path.GetFileNameWithoutExtension(file));
             // Skip $ prefixed files since they almost always seem to be recyclers
-            if (filename.StartsWith("$")) return null;
+            if (filename.StartsWith('$')) return null;
             filename = Library.CleanTitle(filename);
 
             // Now let's try to match the title first, from the directory
@@ -224,7 +227,7 @@ namespace Backend.ServerLibrary
                         //now read to the next word
                         int m = _path.IndexOf(' ', n);
                         if (m < 0) m = _path.Length - 1;
-                        string part = _path.Substring(n, m - n);
+                        string part = _path[n..m];
                         part = part.Trim();
                         string pattern = @"^\d{1,2}$|^(complete|720p|1080p)$";
                         if (Regex.IsMatch(part, pattern))
@@ -250,23 +253,14 @@ namespace Backend.ServerLibrary
         }
 
 
-        public string Root = "";
-
-        /// <summary>
-        /// Creates a new searcher
-        /// </summary>
-        /// <param name="rootFolder"></param>
-        public Searcher(string rootFolder)
-        {
-            Root = rootFolder;
-        }
+        public string Root = rootFolder;
 
 
         /// <summary>
         /// Enumerates this searcher from the given parent directory
         /// </summary>
         /// <param name="parentDirectory"></param>
-        public Library Enumerate(int threads = 1, Library? input = null)
+        public async Task<Library> Enumerate(int threads = 1, Library? input = null)
         {
             var s = Stopwatch.StartNew();
 
@@ -278,38 +272,39 @@ namespace Backend.ServerLibrary
             ConcurrentDictionary<string, Title> grabbed = new();
 
             // Generate a list of tasks on the threadpool
-            //List < Task > tasks = new();
-            //for (int i = 0; i < int.Clamp(threads, 1, 16); i++)
-            //{
-            //    tasks.Add(Task.Run(() =>
-            //    {
-            // Essentially, let's just enumerate the hell out of everything
-            // We should delay a little bit, just to make sure
-            // that we don't run out of directories
-            while (Directories.TryTake(out var d, 100))
+            List<Task> tasks = new();
+            for (int i = 0; i < int.Clamp(threads, 1, 4); i++)
             {
-                try
+                tasks.Add(Task.Run(() =>
                 {
-                    // Let's get every directory in this directory
-                    // So that the other threads can work
-                    foreach (var dd in Directory.EnumerateDirectories(d)) Directories.Add(dd);
-                }
-                catch { }
+                    // Essentially, let's just enumerate the hell out of everything
+                    // We should delay a little bit, just to make sure
+                    // that we don't run out of directories
+                    while (Directories.TryTake(out var d, 100))
+                    {
+                        try
+                        {
+                            // Let's get every directory in this directory
+                            // So that the other threads can work
+                            foreach (var dd in Directory.EnumerateDirectories(d)) Directories.Add(dd);
+                        }
+                        catch { }
 
-                // See if this folder contains videos
-                try
-                {
-                    // Now process all of the files in this directory, non-recursively
-                    var videoFiles = Directory.EnumerateFiles(d).Where(x => VideoExtensions.Contains(Path.GetExtension(x).ToLower()));
-                    foreach (string file in videoFiles) ProcessFile(file, grabbed);
+                        // See if this folder contains videos
+                        try
+                        {
+                            // Now process all of the files in this directory, non-recursively
+                            var videoFiles = Directory.EnumerateFiles(d).Where(x => VideoExtensions.Contains(Path.GetExtension(x).ToLower()));
+                            foreach (string file in videoFiles)
+                                ProcessFile(file, grabbed);
+                        }
+                        catch { }
+                    }
                 }
-                catch { }
+            ));
             }
-            //    }
-            //    ));
-            //}
-            //// let all of the workers finish
-            //Task.WaitAll(tasks);
+            // let all of the workers finish
+            await Task.WhenAll(tasks);
 
             // Now we need to do another pass
             // to collect everything into a Season/Episode collection
@@ -446,11 +441,14 @@ namespace Backend.ServerLibrary
             Console.WriteLine("Searched Directory. Time: " + s.ElapsedMilliseconds + "ms");
 
             // Now set up the library and bazoonga
-            if(input == null) input = new(Root);
+            input ??= new(Root);
 
             // now consolidate everything
-
-            input.FoundSeries = grabbed;
+            input.FoundSeries = new();
+            foreach(var series in grabbed)
+            {
+                input.FoundSeries.TryAdd(series.Value.ID, series.Value);
+            }
             // now compress and return details
             input.CompressPaths();
             input.RefreshTargetFileMaps();
@@ -462,7 +460,7 @@ namespace Backend.ServerLibrary
         /// </summary>
         /// <param name="file"></param>
         /// <param name="grabbed"></param>
-        public void ProcessFile(string file, ConcurrentDictionary<string, Title> grabbed)
+        public static void ProcessFile(string file, ConcurrentDictionary<string, Title> grabbed)
         {
 
             var details = ParseFileName(file);
@@ -473,7 +471,7 @@ namespace Backend.ServerLibrary
 
                 Title t = new(n.Title);
                 t = grabbed.GetOrAdd(n.Title, t);
-                MediaFile f = new MediaFile()
+                MediaFile f = new()
                 {
                     SNo = n.Season ?? -1,
                     EpNo = n.Episode ?? -1,
@@ -492,7 +490,45 @@ namespace Backend.ServerLibrary
 
         }
 
+        [GeneratedRegex(
+                    @"# Match optional bracketed sections (like [Year], [Genre], etc.)
+(?:\[[^\]]*\]\s*)*
+
+# Capture the title (starts with an uppercase letter, followed by optional lowercase letters and other title parts)
+(?<Title>
+    [A-Z]                           # Starts with an uppercase letter
+    (?:[a-z]+|)                     # Followed by lowercase letters (optional)
+    (?:[.\s&-][A-Z][a-z]*)*         # Additional parts, starting with ""."", space, ""&"", or ""-"", then uppercase followed by lowercase
+)
+
+# Ensure the string contains at least one of these patterns:
+# - Season designations (e.g., S01, Season 1)
+# - A year (either in parentheses or just 4 digits)
+# - Resolution or codec type (e.g., 1080p, HEVC, x264)
+(?=.*(?: 
+    S\d{2}                           # Season designation (Sxx)
+    |(?:\(\d{4}\)|\d{4})             # Year (yyyy or (yyyy))
+    |Season\s?\d{1,2}                # Season followed by 1 or 2 digits (Season x)
+    |1080p|720p|x265|HEVC|x264|AV1   # Video quality or encoding format (1080p, x265, etc.)
+))", 
+            
+            RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-AU")]
+        private static partial Regex TitleRegexBuilder();
 
 
+        [GeneratedRegex(
+            @"# Match Season or Sxx pattern (e.g., ""S01"", ""Season 1"", ""Season 01"", ""S01 1080p"")
+(?:\b(S(?:\d{1,2})?|Season(?:[\s.-]*\d{1,2})?)   # Match ""S"" followed by 1 or 2 digits or ""Season"" followed by optional space, period, or hyphen, then 1 or 2 digits
+  (?:[\s.-]*[xX]?\d{1,2})?                         # Optionally match a resolution (e.g., "" 1080"", ""x1080"", "" 720p"")
+\b)
+
+# Match video resolution or codec in the form ""xxXxx"" (e.g., ""720x1080"", ""1080x720"")
+|(?:\b\d{1,2}[xX]\d{1,2}\b)
+
+# Match 1 or 2 digits (e.g., ""15"", ""9"")
+|(?:\b\d{1,2}\b)",
+            
+            RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-AU")]
+        private static partial Regex SeasonEpisodeRegexBuilder();
     }
 }

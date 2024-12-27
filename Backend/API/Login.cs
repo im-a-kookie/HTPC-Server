@@ -1,4 +1,4 @@
-﻿using Backend.ServerLibrary;
+﻿using Server.ServerLibrary;
 using Cookie.Connections;
 using Cookie.Connections.API;
 using Cookie.Connections.API.Logins;
@@ -8,16 +8,15 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
-using static Backend.API.Login;
+using static Server.API.Login;
 
-namespace Backend.API
+namespace Server.API
 {
     [Route("oauth", "Login endpoints")]
     public class Login
     {
         public ILoginManager<Program> LoginManager;
         public Controller<Program> Controller;
-
 
         /// <summary>
         /// Create a new login endpoint with the given controller
@@ -62,17 +61,22 @@ namespace Backend.API
 
             }
 
-            Logger.Debug("Setup login features!");
+            Logger.Debug("Logins initialized!");
         }
 
 
         [Route("login", "Attempts to log in a user." +
             "\n\rExpects: json with username/password fields." +
-            "\n\rReturns: Json success bool. HTTP OK on success, HTTP Unauthorized on fail.")]
-        public Response LoginRequest(string json)
+            "\n\rReturns: Json success=true and a token, or NotAuthorized.")]
+        public Response LoginRequest(Request request, User? user, string json)
         {
+            // Pre-validate the user from within the controller
+            if(user != null) return new Response()
+                    .SetJson("{\"success\":true}")
+                    .SetResult(HttpStatusCode.OK);
+
             // bad login input
-            if(json.Length <= 0)
+            if (json.Length <= 0)
             {
                 return new Response()
                     .SetJson("{\"success\":false}")
@@ -89,18 +93,18 @@ namespace Backend.API
             catch { }
             if (loginData == null)
             {
-                return new Response().NotAuthorized();
+                return new Response().NotAuthorized(api: true);
             }
 
             // now read it out of the login manager
-            var user = LoginManager.GetUser(loginData.Username ?? "", loginData.Password ?? "");
+            user = LoginManager.GetUser(loginData.Username ?? "", loginData.Password ?? "");
             if (user != null)
             {
                 var response = new Response()
-                    .SetJson("{\"success\":true}")
+                    .SetJson($"{{ \"success\":true, \"token\":\"{user.GenerateToken(TimeSpan.FromDays(3650))}\"}}")
                     .SetResult(HttpStatusCode.OK);
 
-                Controller!.ApplyPersistentCookie(response, user);
+                Controller!.ApplyPersistentCookie(request, response, user);
                 return response;
 
             }
@@ -110,6 +114,21 @@ namespace Backend.API
                     .SetResult(HttpStatusCode.Unauthorized);
 
         }
+
+        [Route("api_token", "Generates a short-lived API token for the currently active user." +
+            "\n\rExpects: Request with valid login parameters" +
+            "\n\rReturns: OK and token (json, token:), otherwise NotAuthorized.")]
+        public Response CreateShortApiToken(User? user)
+        {
+            if(user != null)
+            {
+                return new Response()
+                    .SetResult(HttpStatusCode.OK)
+                    .SetJson($"{{ \"token\":\"{user.GenerateToken(TimeSpan.FromMinutes(5))}\" }}");
+            }
+            return new Response().NotAuthorized(api: true);
+        }
+
 
         [Route("signup", "Creates a new user." +
             "\n\rExpects: json with username/password fields." +

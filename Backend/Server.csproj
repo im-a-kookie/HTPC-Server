@@ -1,21 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFrameworks>net9.0</TargetFrameworks>
+	  <TargetFrameworks>net9.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="Config\Encryption.json" />
-    <None Remove="Config\ServerSettings.json" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Config\AdminLogin.json" />
-    <EmbeddedResource Include="Config\Encryption.json" />
-    <Resource Include="Config\ServerSettings.json">
+    <Resource Include="Config\login.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Config\encryption.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Config\server.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>

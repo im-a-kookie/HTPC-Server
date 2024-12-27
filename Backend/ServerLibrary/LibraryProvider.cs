@@ -1,6 +1,6 @@
 ﻿using Cookie.Connections.API;
 using Cookie.ContentLibrary;
-namespace Backend.ServerLibrary
+namespace Server.ServerLibrary
 {
     public class LibraryProvider
     {
@@ -13,19 +13,21 @@ namespace Backend.ServerLibrary
         {
             ProvidedLibrary = library;
 
-            Provider = new();
-            Provider.PathTransformer = (x) =>
+            Provider = new()
             {
-                int n = -1;
-                if (x.StartsWith("v_")) x = x.Substring(2);
-                if (int.TryParse(x, out n))
+                PathTransformer = (x) =>
                 {
-                    if (ProvidedLibrary.targetToFileMap.TryGetValue(n, out var episode))
+                    int n = -1;
+                    if (x.StartsWith("v_")) x = x[2..];
+                    if (int.TryParse(x, out n))
                     {
-                        return episode.DecompressPath(ProvidedLibrary);
+                        if (ProvidedLibrary.targetToFileMap.TryGetValue(n, out var episode))
+                        {
+                            return episode.DecompressPath(ProvidedLibrary);
+                        }
                     }
+                    return null;
                 }
-                return null;
             };
 
         }
