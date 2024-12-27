@@ -1,5 +1,9 @@
 ﻿using Cookie.Logging;
 using Cookie.Utils;
+using System.Buffers;
+using System.Diagnostics;
+using System.Net.Sockets;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Nodes;
 using static Cookie.Connections.Response;
@@ -12,12 +16,12 @@ namespace Cookie.Connections
         /// <summary>
         /// The headers in this request
         /// </summary>
-        public Dictionary<string, string> Headers { get; set; } = new();
+        public Dictionary<string, string> Headers { get; set; } = [];
 
         /// <summary>
         /// The cookies contained in this request
         /// </summary>
-        public Dictionary<string, System.Net.Cookie> Cookies { get; set; } = new();
+        public Dictionary<string, System.Net.Cookie> Cookies { get; set; } = [];
 
         /// <summary>
         /// The target of this request
@@ -66,15 +70,16 @@ namespace Cookie.Connections
             this.Target = target;
         }
 
+#if !BROWSER
         /// <summary>
         /// Generates a request out of a stream
         /// </summary>
         /// <param name="stream"></param>
-        public Request(Stream stream)
+        public Request(TcpClient client, Stream stream)
         {
-            Read(stream);
+            Read(client, stream);
         }
-
+#endif
         /// <summary>
         /// Generates an empty/default request
         /// </summary>
@@ -198,11 +203,10 @@ namespace Cookie.Connections
                 if (a > 0) s = s.Slice(a + 1);
                 int b = s.IndexOf('-');
 
-                long l0 = 0;
                 // -1 can be caught to default to length
                 if (b < 0) return new(0L, -1L);
 
-                if (!long.TryParse(s.Slice(0, b), out l0))
+                if (!long.TryParse(s.Slice(0, b), out long l0))
                     l0 = 0; // start at 0
 
                 long l1 = -1;
@@ -216,13 +220,14 @@ namespace Cookie.Connections
             return null;
         }
 
+#if !BROWSER
         /// <summary>
         /// Reads this request out of a stream
         /// </summary>
         /// <param name="input"></param>
-        public void Read(Stream input)
+        public void Read(TcpClient client, Stream input)
         {
-            ReadAsync(input).Wait();
+            ReadAsync(client, input).Wait();
         }
 
         /// <summary>
@@ -230,19 +235,77 @@ namespace Cookie.Connections
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        public async Task ReadAsync(Stream input)
+        public async Task ReadAsync(TcpClient client, Stream input)
         {
-            using var inputStream = new StreamReader(input, leaveOpen: true);
+            int remain = client.Available;
 
-            var firstLine = await inputStream.ReadLineAsync();
-            if (firstLine != null)
+            while(remain <= 0)
             {
+                await Task.Delay(5);
+                remain = client.Available;
+            }
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(16384);
+            using var ms = new MemoryStream();
+
+            // Read the entire packet into the stream
+            int totalRead = 0;
+            while (remain > 0)
+            {
+                int len = int.Min(remain, buffer.Length);
+                int amt = input.Read(buffer, 0, len);
+
+                if (amt == 0)
+                {
+                    // If ReadAsync returns 0, there may be no data yet; wait briefly and check again
+                    await Task.Delay(5); // Small delay to allow for data flush
+                    remain = client.Available; // Re-check available data after the delay
+                    continue; // Retry reading
+                }
+
+                remain -= amt;
+                totalRead += amt;
+                ms.Write(buffer, 0, amt);
+
+                ms.Flush();
+            }
+            ArrayPool<byte>.Shared.Return(buffer);
+            //now move back to the start and look for the newline break
+            ms.Position = 0;
+            int newliners = 0;
+            for(int i = 0; i <= ms.Length; i++)
+            {
+                var c = ms.ReadByte();
+                if (c < 0) break;
+                if (c == '\n' || c == '\r')
+                {
+                    newliners += 1;
+                    if (newliners == 4) break;
+                }
+                else newliners = 0;
+            }
+
+            // now we have the header, let's try and read the content
+            int headerLength = (int)ms.Position;
+            ms.Position = 0;
+
+            var text = new byte[headerLength];
+            await ms.ReadAsync(text, 0, text.Length);
+
+            var headerString = Encoding.UTF8.GetString(text).Trim();
+            var parts = headerString.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+            // The first line has the HTTP information
+            if(parts.Length >= 1)
+            {
+                var firstLine = parts[0].Trim();
                 // Read the components
                 int pos = firstLine.IndexOf(' ');
                 var method = firstLine.Remove(pos);
                 // Now read to the HTTP section
                 int httpPos = firstLine.IndexOf("HTTP");
                 Target = firstLine.Substring(pos, httpPos - pos).Trim();
+
                 // clean it
                 ReadParametersFromTarget();
 
@@ -267,18 +330,19 @@ namespace Cookie.Connections
                     }
                 }
             }
+
             // Now read the request lines until we get to the end of the header
-            while (true)
+            for (int i = 1; i < parts.Length; i++)
             {
-                var read = await inputStream.ReadLineAsync();
-                if (read?.Trim().Length <= 0)
-                    break;
+
+                var read = parts[i].Trim();
+                if (read.Length <= 0) continue;
                 int pos = read?.IndexOf(':') ?? -1;
                 if (pos > 0)
                 {
                     // and doink
                     string key = read!.Remove(pos).Trim();
-                    string body = read.Substring(pos + 1);
+                    string body = read[(pos + 1)..];
 
                     // read the cookies
                     if (key == "Cookie" || key == "Set-Cookie")
@@ -292,14 +356,14 @@ namespace Cookie.Connections
                         Headers[key] = body.Trim();
                     }
                     //Console.WriteLine(key + ": " + body);
-                }
-
+                }                
             }
 
-            if (Method != HttpMethod.Get)
+            // Now see if we have to read any more request content
+            if (ms.Length - ms.Position > 0)
             {
-                var bodyData = inputStream.ReadToEnd().Trim();
-                RequestData = Encoding.UTF8.GetBytes(bodyData);
+                RequestData = new byte[ms.Length - ms.Position];
+                await ms.ReadAsync(RequestData, 0, RequestData.Length);
             }
             else RequestData = [];
 
@@ -310,11 +374,11 @@ namespace Cookie.Connections
         /// </summary>
         internal void ReadParametersFromTarget()
         {
-            char[] delimiters = { '=', '?', '#', ';' }; // Possible delimiters
+            char[] delimiters = ['=', '?', '#', ';']; // Possible delimiters
             int[] pos = new int[delimiters.Length];
 
             //now find the soonest delimiter
-            int lastSlashPos = Target.LastIndexOf("/");
+            int lastSlashPos = Target.LastIndexOf('/');
             if (lastSlashPos < 0) lastSlashPos = 0;
             for (int i = 0; i < delimiters.Length; i++)
             {
@@ -336,7 +400,7 @@ namespace Cookie.Connections
         /// </summary>
         /// <param name="header"></param>
         /// <returns></returns>
-        internal System.Net.Cookie? ReadCookie(string header)
+        internal static System.Net.Cookie? ReadCookie(string header)
         {
             // Extract the cookie part of the Set-Cookie header (ignoring attributes like Path, Secure, etc.)
             var parts = header.Split(';');
@@ -344,15 +408,15 @@ namespace Cookie.Connections
             string namePart = parts[0].Trim();
 
             // Split into name and value
-            int epos = namePart.IndexOf("=");
+            int epos = namePart.IndexOf('=');
             if(epos < 0) return null;
 
             //now we can get the cookie parts
             string name = namePart.Remove(epos).Trim();
-            string value = namePart.Substring(epos + 1).Trim();
+            string value = namePart[(epos + 1)..].Trim();
 
             // Create the Cookie object
-            System.Net.Cookie cookie = new System.Net.Cookie(name, value);
+            System.Net.Cookie cookie = new(name, value);
 
             // Parse additional cookie attributes (if any)
             string[] attributes = header.Split(';');
@@ -361,7 +425,7 @@ namespace Cookie.Connections
                 string attrib = attribute.Trim().ToLower();
                 if (attrib.StartsWith("expires="))
                 {
-                    cookie.Expires = DateTime.Parse(attrib.Substring(8));
+                    cookie.Expires = DateTime.Parse(attrib[8..]);
                 }
                 else if (attrib == "secure")
                 {
@@ -369,15 +433,14 @@ namespace Cookie.Connections
                 }
                 else if (attrib.StartsWith("path="))
                 {
-                    cookie.Path = attrib.Substring(5);
+                    cookie.Path = attrib[5..];
                 }
             }
 
             return cookie;
         }
 
-
-
+#endif
 
 
 

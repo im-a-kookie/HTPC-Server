@@ -1,4 +1,6 @@
-﻿using Cookie.Utils;
+﻿using Cookie.Logging;
+using Cookie.Utils;
+using System.IO;
 using System.Net;
 using System.Text;
 
@@ -27,7 +29,7 @@ namespace Cookie.Connections
         /// <summary>
         /// The headers in this response
         /// </summary>
-        public Dictionary<string, string> Headers { get; set; } = new();
+        public Dictionary<string, string> Headers { get; set; } = [];
 
         /// <summary>
         /// The type of data in this response
@@ -56,6 +58,8 @@ namespace Cookie.Connections
 
         public FileRange? RequestedRange { get; set; } = null;
 
+        public Request? initialRequest = null;
+
         /// <summary>
         /// Creates a new response to the given request
         /// </summary>
@@ -64,6 +68,8 @@ namespace Cookie.Connections
         {
             if (request != null)
                 RequestedRange = request.GetRange();
+
+            initialRequest = request;
         }
 
         /// <summary>
@@ -116,7 +122,7 @@ namespace Cookie.Connections
         /// Configures this as an Unauthorized response
         /// </summary>
         /// <param name="api"></param>
-        public Response NotAuthorized(bool api = false)
+        public Response NotAuthorized(bool api = true)
         {
             Headers.Clear();
             AddUserAgent();
@@ -141,7 +147,7 @@ namespace Cookie.Connections
             string resource = "Redirect.html";
             DataType = MimeHelper.GetFromFile(resource)!;
             Headers["Location"] = target;
-            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource(STUB + target)!);
+            ResponseData = Encoding.UTF8.GetBytes(ResourceTool.GetResource(STUB + resource)!);
             return this;
 
         }
@@ -167,6 +173,30 @@ namespace Cookie.Connections
         {
             DataType = MimeHelper.GetFromExtension(".json")!;
             ResponseData = Encoding.UTF8.GetBytes(json);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the response with json content
+        /// </summary>
+        /// <param name="json"></param>
+        public Response SetSuccessJson()
+        {
+            Result = HttpStatusCode.OK;
+            DataType = MimeHelper.GetFromExtension(".json")!;
+            ResponseData = Encoding.UTF8.GetBytes("{\"success\":true}");
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the response with json content
+        /// </summary>
+        /// <param name="json"></param>
+        public Response SetFailJson()
+        {
+            Result = HttpStatusCode.BadRequest;
+            DataType = MimeHelper.GetFromExtension(".json")!;
+            ResponseData = Encoding.UTF8.GetBytes("{\"success\":false}");
             return this;
 
         }
@@ -273,8 +303,10 @@ namespace Cookie.Connections
         private void WriteHeader(Stream stream)
         {
             // write the first part
-            using var w = new StreamWriter(stream);
-            w.WriteLine($"HTTP/1.1 {(int)Result} {Result.ToString()}");
+            using var w = new StreamWriter(stream, leaveOpen: true);
+            w.WriteLine($"HTTP/1.1 {(int)Result} {Result}");
+
+            w.WriteLine($"Content-Type: {DataType}");
 
             // Write the headers we know
             foreach (var header in Headers)
@@ -284,7 +316,7 @@ namespace Cookie.Connections
             // and the cookies
             foreach (var cookie in Cookies)
             {
-                w.WriteLine($"Cookie: " + cookie.Value.ToString());
+                w.WriteLine($"Set-Cookie: " + cookie.Value.ToString());
             }
         }
 
@@ -292,12 +324,13 @@ namespace Cookie.Connections
         /// Writes the header to the stream
         /// </summary>
         /// <param name="stream"></param>
-        private async Task WriteHeaderAsync(Stream stream)
+        private async Task WriteHeaderAsync(Stream stream, bool writeWhitespace = false)
         {
             // write the first part
             using var w = new StreamWriter(stream, leaveOpen: true);
 
-            await w.WriteLineAsync($"HTTP/1.1 {(int)Result} {Result.ToString()}");
+            await w.WriteLineAsync($"HTTP/1.1 {(int)Result} {Result}");
+            await w.WriteLineAsync($"Content-Type: {DataType}");
 
             List<Task> tasks = new(Headers.Count + Cookies.Count);
 
@@ -309,11 +342,25 @@ namespace Cookie.Connections
             // and the cookies
             foreach (var cookie in Cookies)
             {
-                tasks.Add(w.WriteLineAsync($"Cookie: " + cookie.Value.ToString()));
+                
+                
+
+                var sb = new StringBuilder();
+                sb.Append($"{cookie.Value.ToString()}; ");
+                sb.Append($"Path={cookie.Value.Path}; ");
+                sb.Append($"Domain={cookie.Value.Domain}; ");
+                if(cookie.Value.Secure) sb.Append($"Secure; ");
+                if (cookie.Value.HttpOnly) sb.Append($"HttpOnly; ");
+                var str = sb.ToString();
+                tasks.Add(w.WriteLineAsync($"Set-Cookie: " + str.Trim()));
             }
 
             //now wait
             await Task.WhenAll(tasks);
+
+            if (writeWhitespace)
+                await w.WriteLineAsync();
+
         }
 
         /// <summary>
@@ -322,7 +369,6 @@ namespace Cookie.Connections
         /// <param name="stream"></param>
         public void WriteData(Stream stream)
         {
-            WriteHeader(stream);
             if (Filepath != null)
             {
                 StreamFile(stream, Filepath);
@@ -330,8 +376,10 @@ namespace Cookie.Connections
             else
             {
                 // add the space
+                Headers["Content-Length"] = ResponseData.Length.ToString();
+                WriteHeader(stream);
                 stream.Write(Encoding.UTF8.GetBytes("\r\n"));
-
+                stream.Write(ResponseData);
             }
         }
 
@@ -342,7 +390,6 @@ namespace Cookie.Connections
         public async Task WriteDataAsync(Stream stream)
         {
             // write the header
-            await WriteHeaderAsync(stream);
             if (Filepath != null)
             {
                 await StreamFileAsync(stream, Filepath);
@@ -350,6 +397,8 @@ namespace Cookie.Connections
             else
             {
                 // add the space
+                Headers["Content-Length"] = ResponseData.Length.ToString();
+                await WriteHeaderAsync(stream);
                 await stream.WriteAsync(Encoding.UTF8.GetBytes("\r\n"));
                 await stream.WriteAsync(ResponseData);
                 
@@ -412,7 +461,19 @@ namespace Cookie.Connections
             }
 
             // now we can stream it
-            await StreamFileAsync(networkStream, content, MimeHelper.GetFromFile(path)!);
+            try
+            {
+                await StreamFileAsync(networkStream, content, MimeHelper.GetFromFile(path)!);
+
+            }
+            catch
+            {
+
+            }
+            finally
+            {
+                if (content != null) content.Dispose();
+            }
         }
 
 
@@ -426,6 +487,7 @@ namespace Cookie.Connections
             //Get the range parameters, if requested
 
             var _range = GetFileRanges(content);
+
             if (_range == null)
             {
                 BadRequest();
@@ -433,7 +495,7 @@ namespace Cookie.Connections
             }
             var range = _range.Value;
 
-            WriteHeader(networkStream);
+            await WriteHeaderAsync(networkStream, true);
 
             // Seek if possible. We have already validated the possibility of this,
             // But we don't want to try and seek a non-supporting stream
@@ -441,9 +503,10 @@ namespace Cookie.Connections
 
             // Read into a buffer and write the buffer into the stream
 
-            byte[] buffer = new byte[mime.Contains("video") ? 4 * 1024 * 1024 : 8192];
-            long bytesToRead = range.End - range.Start + 1;
+            byte[] buffer = new byte[content.Length < 4096 ? 4096 : 1024 * 1024];
+            long bytesToRead = range.End - range.Start;
             long bytesReadTotal = 0;
+
             // Now write this into the underlying stream
             try
             {
@@ -451,14 +514,14 @@ namespace Cookie.Connections
                 {
                     // Read a bunch of bytes at a time
                     int bytesToReadNow = (int)Math.Min(buffer.Length, bytesToRead);
-                    int bytesRead = await content.ReadAsync(buffer, 0, bytesToReadNow);
+                    int bytesRead = await content.ReadAsync(buffer.AsMemory(0, bytesToReadNow));
                     if (bytesRead == 0)
                     {
                         break;
                     }
 
                     //and write them
-                    await networkStream!.WriteAsync(buffer, 0, bytesRead);
+                    await networkStream!.WriteAsync(buffer.AsMemory(0, bytesRead));
                     bytesToRead -= bytesRead;
                     bytesReadTotal += bytesRead;
                 }
@@ -479,7 +542,7 @@ namespace Cookie.Connections
         public FileRange? GetFileRanges(Stream stream)
         {
 
-            var range = RequestedRange.HasValue ? RequestedRange.Value : new(-1, -1);
+            var range = RequestedRange ?? new(-1, -1);
             long fileLength = stream.Length;
 
             // Calculate the length, and parameters, properly
@@ -499,23 +562,30 @@ namespace Cookie.Connections
                 return null;
             }
 
+            if (end - start > 1024 * 1024 * 32 && range.Start != -1)
+            {
+                var r = initialRequest;
+                end = start + 1024 * 1024 * 32;
+                end = long.Min(end, fileLength - 1);
+            }
             // If the content is partial, then
             // We need to mark it as such
-            if (start > 0 || end < fileLength - 1)
+            if (start > 0 || end < fileLength)
             {
                 Result = HttpStatusCode.PartialContent;
-                Headers.Add("Content-Range", $"bytes {start}-{end}/{fileLength}");
+                Headers.Add("Content-Range", $"bytes {start}-{end - 1}/{fileLength}");
                 Headers.Add("Content-Length", $"{end - start}");
-
+                //write the file headers
+                Headers.Add("Accept-Ranges", "bytes");
             }
             // Otherwise we can just return "OK"
             else
             {
-                Headers.Add("Content-Length", $"{end - start}");
+                Headers.Add("Content-Length", $"{fileLength}");
+
                 Result = HttpStatusCode.OK;
             }
-            //write the file headers
-            Headers.Add("Accept-Ranges", "bytes");
+
 
             return new(start, end);
         }
