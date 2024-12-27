@@ -83,7 +83,7 @@ namespace Cookie.ContentLibrary
             }
             set
             {
-                Data = ((Data & ~0xFFF0000) | ((long)(value & 0xFFF) << 16));
+                Data = (((Data & ~0xFFF0000)) | ((long)(value & 0xFFF) << 16));
             }
         }
 
@@ -94,11 +94,11 @@ namespace Cookie.ContentLibrary
         {
             get
             {
-                return (int)((Data & 0xFFFFF0000000)) >> 28;
+                return (int)(((Data & 0xFFFFFFFF0000000)) >> 28);
             }
             set
             {
-                Data = ((Data & ~0xFFFFF0000000) | ((long)(value & 0xFFFFF) << 28));
+                Data = (((Data & ~0xFFFFFFFF0000000)) | ((long)(value & 0xFFFFFFFF) << 28));
             }
         }
 

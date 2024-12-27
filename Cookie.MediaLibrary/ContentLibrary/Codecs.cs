@@ -7,14 +7,10 @@ using System.Threading.Tasks;
 
 namespace Cookie.ContentLibrary
 {
-    public class Codec
+    public class Codec(string code)
     {
-        public string code = "";
+        public string code = code;
         public int index = -1;
-        public Codec(string code)
-        {
-            this.code = code;
-        }
     }
 
     public static class Codecs

@@ -101,6 +101,7 @@ namespace Cookie.ContentLibrary
         /// </summary>
         public bool PredictMovie => EpisodeList.Count == 1;
 
+        private static readonly char[] separator = new[] { ' ', '-', ':' };
 
         public void ToDictionary(IDictionary<string, object> dict)
         {
@@ -172,14 +173,14 @@ namespace Cookie.ContentLibrary
         private static string CapitalizeTitle(string title)
         {
             // List of small words that should not be capitalized unless they're the first or last word
-            HashSet<string> smallWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "nor", "of", "on", "or", "so", "the", "to", "with"
-        };
+            HashSet<string> smallWords = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "nor", "of", "on", "or", "so", "the", "to", "with"
+            };
 
             // Split the title into words
-            string[] words = title.Split(new[] { ' ', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
-            List<string> formattedWords = new List<string>();
+            string[] words = title.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+            List<string> formattedWords = [];
 
             for (int i = 0; i < words.Length; i++)
             {
@@ -207,7 +208,7 @@ namespace Cookie.ContentLibrary
                 return word;
 
             // Capitalize the first letter and make the rest lowercase
-            return char.ToUpper(word[0]) + word.Substring(1).ToLower();
+            return char.ToUpper(word[0]) + word[1..].ToLower();
         }
 
         public class Packer

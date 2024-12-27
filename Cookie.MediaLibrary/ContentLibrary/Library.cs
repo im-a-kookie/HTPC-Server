@@ -32,6 +32,41 @@ namespace Cookie.ContentLibrary
             OnSeriesDeleted?.Invoke(this, title);
         }
 
+        public string GetLibraryRootDirectory { get {
+                string result = RootPath + "\\__library_cache";
+                Directory.CreateDirectory(result);
+                return result;
+            }
+        }
+
+        public string GetLibraryCoverDirectory
+        {
+            get
+            {
+                string result = GetLibraryRootDirectory + "\\covers";
+                Directory.CreateDirectory(result);
+                return result;
+            }
+        }
+
+        public string GetLibraryThumbnailDirectory
+        {
+            get
+            {
+                string result = GetLibraryRootDirectory + "\\thumbs";
+                Directory.CreateDirectory(result);
+                return result;
+            }
+        }
+
+        public string GetLibraryCacheFile
+        {
+            get
+            {
+                return GetLibraryRootDirectory + "\\_fullcache.dat";
+            }
+        }
+
         /// <summary>
         /// The root path for this dictionary
         /// </summary>
@@ -72,7 +107,7 @@ namespace Cookie.ContentLibrary
             // updates always trigger immediate writeback to the cache
             OnSeriesUpdate += (x, l) =>
             {
-                Directory.CreateDirectory(RootPath + "/__library_cache");
+                var dir = GetLibraryRootDirectory;
                 lock (this)
                 {
                     foreach (var title in l)
@@ -84,7 +119,7 @@ namespace Cookie.ContentLibrary
 
             try
             {
-                using var file = File.OpenRead(RootPath + "/__library_cache/__library.dat");
+                using var file = File.OpenRead(GetLibraryCacheFile);
                 var dict = Byter.FromBytes(file);
                 if(dict != null)
                 {
@@ -92,10 +127,10 @@ namespace Cookie.ContentLibrary
                 }
 
                 // now see if we can load the series
-                foreach (var datfile in Directory.EnumerateFiles(RootPath + "/__library_cache", "*.dat", SearchOption.TopDirectoryOnly))
+                foreach (var datfile in Directory.EnumerateFiles(GetLibraryRootDirectory, "*.dat", SearchOption.TopDirectoryOnly))
                 {
                     var filename = Path.GetFileName(datfile);
-                    if (filename.StartsWith("__")) continue;
+                    if (filename.StartsWith("_")) continue;
 
                     try
                     {
@@ -105,6 +140,11 @@ namespace Cookie.ContentLibrary
                         if (dict != null)
                         {
                             title.FromDictionary(dict!);
+                            foreach(var s in title.Eps)
+                            {
+                                s.Value.Eps.Sort((x, y) => x.EpNo.CompareTo(y.EpNo));
+                            }
+
                             this.FoundSeries.TryAdd(title.ID, title);
                             this.NameToSeries.TryAdd(title.Name, title);
                             title.Owner = this;
@@ -145,17 +185,20 @@ namespace Cookie.ContentLibrary
         {
             targetToFileMap.Clear();
             NameToSeries.Clear();
-            Random r = new();
+            int titleCounter = 10000;
             foreach (var title in FoundSeries.Values)
             {
                 title.Owner = this;
                 NameToSeries.TryAdd(title.Name, title);
+                titleCounter += 10000;
 
+                int episodeCounter = 0;
                 foreach (var season in title.Eps.Values)
                 {
                     foreach (var ep in season.Eps)
                     {
-                        ep.FileLookup = targetToFileMap.Count ^ 0x2EF7B;
+                        ep.FileLookup = titleCounter + episodeCounter;
+                        ++episodeCounter;
                         targetToFileMap.TryAdd(ep.FileLookup, ep);
                     }
                 }
@@ -167,9 +210,10 @@ namespace Cookie.ContentLibrary
         /// </summary>
         public void StoreCache()
         {
-            Directory.CreateDirectory(RootPath + "/__library_cache");
-            Directory.CreateDirectory(RootPath + "/__library_cache/__covers");
-
+            _ = GetLibraryRootDirectory;
+            _ = GetLibraryCoverDirectory;
+            _ = GetLibraryThumbnailDirectory;
+            Save();
             lock (this)
             {
                 foreach (var f in FoundSeries.Values)
@@ -183,16 +227,17 @@ namespace Cookie.ContentLibrary
         /// Saves a title to the disk
         /// </summary>
         /// <param name="title"></param>
-        public void WriteTitle(Title title)
+        public void WriteTitle(Title title, string? root = null)
         {
             try
             {
                 lock (title)
                 {
-                    Directory.CreateDirectory(RootPath + "/__library_cache");
-                    File.Delete($"{RootPath}/__library_cache/{title.ID}.dat");
+                    root ??= GetLibraryRootDirectory;
+                    var path = $"{root}\\{title.ID}.dat";
+                    File.Delete(path);
 
-                    using var file = File.OpenWrite($"{RootPath}/__library_cache/{title.ID}.dat");
+                    using var file = File.OpenWrite(path);
                     Byter.ToBytes(file, ((IDictable)title).MakeDictionary());
                 }
             }
@@ -208,8 +253,9 @@ namespace Cookie.ContentLibrary
             {
                 try
                 {
-                    File.Delete(RootPath + "/__library_cache/__library.dat");
-                    using var f = File.OpenWrite(RootPath + "/__library_cache/__library.dat");
+                    var file = GetLibraryCacheFile;
+                    File.Delete(file);
+                    using var f = File.OpenWrite(file);
                     Byter.ToBytes(f, ((IDictable)this).MakeDictionary());
                 }
                 catch { }
@@ -255,10 +301,10 @@ namespace Cookie.ContentLibrary
             // The logic is that we can walk backwards and map every such string in the backwards walk
             // But this becomes very memory expensive very quickly
 
-            List<string> strings = new();
-            List<HashSet<MediaFile>> groups = new();
+            List<string> strings = [];
+            List<HashSet<MediaFile>> groups = [];
 
-            List<MediaFile> sortedFiles = new List<MediaFile>();
+            List<MediaFile> sortedFiles = [];
             foreach (var season in title.Eps)
             {
                 sortedFiles.AddRange(season.Value.Eps);
@@ -326,7 +372,7 @@ namespace Cookie.ContentLibrary
                 // which we can cache and find in the existing path list
                 // Due to typical list size, List.IndexOf is faster overall than dictionary hashing
                 var prefix = file0.Path.Remove(prefixLength);
-                var suffix = file1.Path.Substring(file1.Path.Length - suffixLength);
+                var suffix = file1.Path[^suffixLength..];
 
                 //group the suffixes
                 if (suffix.Length > minimumAbbreviationLength)
@@ -412,9 +458,8 @@ namespace Cookie.ContentLibrary
         /// <param name="depth"></param>
         /// <param name="minLength"></param>
         /// <returns></returns>
-        private List<int> OptimizeStrings(ref List<string> strings, ref List<HashSet<MediaFile>> affectedFiles, int depth, int minLength)
+        private static List<int> OptimizeStrings(ref List<string> strings, ref List<HashSet<MediaFile>> affectedFiles, int depth, int minLength)
         {
-
             // Let's do another natural sort
             var comparer = new NaturalStringComparer();
             var sorting = strings.Select((x, index) => index).ToList();

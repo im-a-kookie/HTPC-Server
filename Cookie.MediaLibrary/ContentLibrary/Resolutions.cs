@@ -7,16 +7,11 @@ using System.Threading.Tasks;
 
 namespace Cookie.ContentLibrary
 {
-    public class Resolution
+    public class Resolution(string res, int dim)
     {
-        public string res = "";
-        public int dim = 0;
+        public string res = res;
+        public int dim = dim;
         public int index = -1;
-        public Resolution(string res, int dim)
-        {
-            this.res = res;
-            this.dim = dim;
-        }
     }
 
     public static class Resolutions
