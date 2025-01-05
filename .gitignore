@@ -455,11 +455,11 @@ $RECYCLE.BIN/
 
 
 ## Video JS stuff
-/Server/wwwroot/video-js.min.css
-/Server/wwwroot/video-js.css
-/Server/wwwroot/video.min.js
-/Server/wwwroot/video.js
-/Server/wwwroot/video.es.js
-/Server/wwwroot/video.cjs.js
-/Server/wwwroot/types/
-/Server/wwwroot/lang/
+**/wwwroot/video-js.min.css
+**/wwwroot/video-js.css
+**/wwwroot/video.min.js
+**/wwwroot/video.js
+**/wwwroot/video.es.js
+**/wwwroot/video.cjs.js
+**/wwwroot/lang/*
+**/wwwroot/types/*
