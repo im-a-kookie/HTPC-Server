@@ -452,3 +452,11 @@ $RECYCLE.BIN/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+/Server/wwwroot/video-js.min.css
+/Server/wwwroot/video-js.css
+/Server/wwwroot/video.min.js
+/Server/wwwroot/video.js
+/Server/wwwroot/video.es.js
+/Server/wwwroot/video.cjs.js
+/Server/wwwroot/types/
+/Server/wwwroot/lang/
