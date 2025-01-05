@@ -17,5 +17,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LocalPlayer\LocalPlayer.csproj" />
+    <ProjectReference Include="..\Server\Server.csproj" />
   </ItemGroup>
 </Project>

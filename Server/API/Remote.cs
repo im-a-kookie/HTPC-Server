@@ -10,7 +10,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Server.API
+namespace Cookie.Server.API
 {
 
     [Route("remote", "Defines the endpoint container for controlling the HTPC remotely")]

@@ -1,4 +1,4 @@
-﻿using Server.ServerLibrary;
+﻿using Cookie.Server.ServerLibrary;
 using Cookie.Connections;
 using Cookie.Connections.API;
 using Cookie.Connections.API.Logins;
@@ -12,7 +12,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Server.API
+namespace Cookie.Server.API
 {
     [Route("content", "Endpoint for accessing the HTPC content")]
     public partial class Files

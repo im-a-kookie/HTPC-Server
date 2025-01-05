@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Backend\Server.csproj" />
+    <ProjectReference Include="..\Server\Server.csproj" />
     <ProjectReference Include="..\Cookie.Connections\Cookie.Connections.csproj" />
     <ProjectReference Include="..\Cookie.Crumbs\Cookie.Crumbs.csproj" />
     <ProjectReference Include="..\Cookie.MediaLibrary\Cookie.MediaLibrary.csproj" />

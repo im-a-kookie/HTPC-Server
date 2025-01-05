@@ -1,6 +1,7 @@
 ﻿using Cookie.Connections.API;
 using Cookie.ContentLibrary;
-namespace Server.ServerLibrary
+
+namespace Cookie.Server.ServerLibrary
 {
     public class LibraryProvider
     {

@@ -1,4 +1,4 @@
-﻿using Server.ServerLibrary;
+﻿using Cookie.Server.ServerLibrary;
 using Cookie.Connections;
 using Cookie.Connections.API;
 using Cookie.Connections.API.Logins;
@@ -11,7 +11,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Server.API
+namespace Cookie.Server.API
 {
     /// <summary>
     /// Elevated file definitions

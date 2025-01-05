@@ -3,7 +3,8 @@ using Cookie.Utils;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-namespace Server.ServerLibrary
+
+namespace Cookie.Server.ServerLibrary
 {
     /// <summary>
     /// Creates a new searcher

@@ -1,30 +1,90 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:LocalPlayer.ViewModels"
-			 xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="LocalPlayer.Views.PlayerView"
-             x:DataType="vm:PlayerViewModel">
+<UserControl 
+	xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:LocalPlayer.ViewModels"
+	xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
+    mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+    x:Class="LocalPlayer.Views.PlayerView"
+    x:DataType="vm:PlayerViewModel"	 
+	XYFocus.NavigationModes="Enabled"
+	XYFocus.DownNavigationStrategy="Projection"
+	XYFocus.UpNavigationStrategy="Projection"
+	XYFocus.LeftNavigationStrategy="Projection"
+	XYFocus.RightNavigationStrategy="Projection"
+	>
 	
-	<Design.DataContext>
-		<vm:PlayerViewModel/>
-	</Design.DataContext>
+	<Panel
+		KeyboardNavigation.TabNavigation="Continue"
+		XYFocus.Down="{Binding #PlayButton}"
+		>
+		<Canvas Background="Transparent" PointerMoved="PointerMoveEvent" />
+		<vlc:VideoView
+			Name="PlayerControl"
+			XYFocus.Down="{Binding #PlayButton}"
+			MediaPlayer="{Binding MediaPlayer}"
+			HorizontalAlignment="Stretch"
+			VerticalAlignment="Stretch"
+			KeyboardNavigation.TabNavigation="Continue"
+			>
 
-	<Grid RowDefinitions="Auto, *, Auto">
-		<Label Grid.Row="0" HorizontalAlignment="Center">Video Player</Label>
-
-		<vlc:VideoView Grid.Row="1" MediaPlayer="{Binding MediaPlayer}"
-					   HorizontalAlignment="Stretch"
-					   VerticalAlignment="Stretch">
-			<Panel Name="ControlsPanel">
-				<StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Background="#900000FF" Spacing="20">
-					<Button Command="{Binding Play}" Margin="20">Play</Button>
-					<Button Command="{Binding Stop}" Margin="20">Stop</Button>
-				</StackPanel>
-			</Panel>
+			<!-- Popup Navigation Controls -->
+			<DockPanel 
+				Name="NavigationPopup" 
+				VerticalAlignment="Bottom"
+				KeyboardNavigation.TabNavigation="Continue"
+				XYFocus.Down="{Binding #PlayButton}"
+				PointerMoved="PointerMoveEvent"
+				PointerExited="PointerExitEvent"
+				>
+				<Border 
+					Background="#AA000000" 
+					Opacity="0.7" 
+					CornerRadius="8" 
+					Padding="0 0 0 6"
+					DockPanel.Dock="Bottom"
+					KeyboardNavigation.TabNavigation="Continue"
+					XYFocus.Down="{Binding #PlayButton}">
+					<StackPanel 
+						Orientation="Vertical" 
+						HorizontalAlignment="Stretch"
+						VerticalAlignment="Center"
+						KeyboardNavigation.TabNavigation="Continue"
+						XYFocus.Down="{Binding #PlayButton}">
+				
+						<!-- Control Buttons -->
+						<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0">
+							<Button Name="BackButton" Content="⏮" 
+								TabIndex="3" 
+								XYFocus.Up="{Binding #PlayerControl}"
+								XYFocus.Down="{Binding #Trackbar}"
+								Margin="0 0 0 -5" FontSize="18" Command="{Binding Back}" Background="Transparent"/>
+							
+							<Button Name="PlayButton" Content="⏯" 
+								TabIndex="0" 
+								XYFocus.Up="{Binding #PlayerControl}"
+								XYFocus.Down="{Binding #Trackbar}"
+								Margin="0 0 0 -5" FontSize="28" Command="{Binding PlayPause}" Background="Transparent"/>
+							
+							<Button Name="NextButton" Content="⏭"
+								TabIndex="2" 
+								XYFocus.Up="{Binding #PlayerControl}"
+								XYFocus.Down="{Binding #Trackbar}"
+								Margin="0 0 0 -5" FontSize="18" Command="{Binding Next}" Background="Transparent"/>
+						
+						</StackPanel>
+						
+						<!-- Seek Bar -->
+						<Slider Name="Trackbar"
+							TabIndex="1" 
+							XYFocus.Up="{Binding #PlayButton}"
+							Minimum="0" Maximum="100" Margin="0 -5 0 3" HorizontalAlignment="Stretch"/>
+                    
+					</StackPanel>
+				</Border>
+			</DockPanel>
 		</vlc:VideoView>
-	</Grid>
 
+	</Panel>
 </UserControl>

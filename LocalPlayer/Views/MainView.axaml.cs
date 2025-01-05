@@ -1,4 +1,6 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.ReactiveUI;
 using LocalPlayer.ViewModels;
 
@@ -11,4 +13,7 @@ public partial class MainView :  ReactiveUserControl<MainViewModel>
         InitializeComponent();
         
     }
+
+
+
 }

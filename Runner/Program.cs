@@ -1,15 +1,14 @@
-﻿using Server.API;
-using Server.Config;
+﻿using Cookie.Server;
 using Cookie.Connections.API;
 using Cookie.Connections.API.Logins;
 using Cookie.ContentLibrary;
 using Cookie.Logging;
 using Cookie.Serializers;
 using Cookie.Serializers.Bytewise;
-using Cookie.Serializing;
 using System;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Security;
 using System.Text.Json;
 
 namespace Runner
@@ -18,19 +17,15 @@ namespace Runner
     {
         public static void Main(string[] args)
         {
-            
-            var controller = Task.Run(() => Server.ServerLibrary.Program.InitializeServer());
 
+            var controller = Task.Run(() => ServerHost.InitializeServer());
 
             while (true)
             {
-                if(Console.ReadLine() == "exit")
+                if (Console.ReadLine() == "exit")
                 {
                     break;
                 }
-
-
-
             }
 
 

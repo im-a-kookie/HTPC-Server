@@ -1,4 +1,4 @@
-﻿using Server.ServerLibrary;
+﻿using Cookie.Server.ServerLibrary;
 using Cookie.Connections;
 using Cookie.Connections.API;
 using Cookie.Connections.API.Logins;
@@ -8,21 +8,21 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
-using static Server.API.Login;
+using static Cookie.Server.API.Login;
 
-namespace Server.API
+namespace Cookie.Server.API
 {
     [Route("oauth", "Login endpoints")]
     public class Login
     {
-        public ILoginManager<Program> LoginManager;
-        public Controller<Program> Controller;
+        public ILoginManager<ServerHost> LoginManager;
+        public Controller<ServerHost> Controller;
 
         /// <summary>
         /// Create a new login endpoint with the given controller
         /// </summary>
         /// <param name="controller"></param>
-        public Login(Controller<Program> controller, ILoginManager<Program> login)
+        public Login(Controller<ServerHost> controller, ILoginManager<ServerHost> login)
         {
             // setup the logging in things
             this.Controller = controller;

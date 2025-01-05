@@ -246,7 +246,10 @@ namespace Cookie.TCP
             };
 
             // now wait for them to be done
-            await Task.WhenAll(tasks);
+            if (tasks.Count > 0)
+            {
+                await Task.WhenAll(tasks);
+            }
 
             Dispose();
             ClosureSource.SetResult();
